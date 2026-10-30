@@ -1,9 +1,6 @@
 # Digital Image Forensics System & Web Platform
 
-A comprehensive digital image forensic analysis platform developed as a Computer Engineering Final Year Mini Project at **PES Modern College of Engineering, Pune (Savitribai Phule Pune University)**.
-
-Guided by: **Mrs. Priyanka Hoval**  
-Project Team: **Kalyani Borse (42209)**, **Shashank Dattu (42212)**, **Prachi Hivarkar (42219)**
+A comprehensive digital image forensic analysis platform for image authentication, Error Level Analysis (ELA), cryptographic file integrity verification, and audit history tracking.
 
 ---
 
@@ -11,11 +8,22 @@ Project Team: **Kalyani Borse (42209)**, **Shashank Dattu (42212)**, **Prachi Hi
 
 Digital images are widely used as documentation and evidence in legal proceedings, journalism, education, and cybersecurity. However, digital images can be manipulated using photo-editing tools (such as Adobe Photoshop, GIMP, Canva, or Snapseed).
 
-This project provides a clean, unified web platform and desktop tool to inspect digital images, verify their file integrity, analyze compression anomalies, extract camera metadata, and track investigation history in a local SQLite database.
+This project provides a unified web platform and desktop tool to inspect digital images, verify their file integrity, analyze compression anomalies, extract camera metadata, and track investigation history in a local SQLite database.
 
 ---
 
 ## ⚡ Key Features
+
+- **🔒 Mandatory Authentication & Role-Based Access**:
+  - Secure login and registration with password hashing (`werkzeug.security`).
+  - Users are greeted with the **Sign In / Registration** screen before accessing the system.
+  - **Lab Administrator**:
+    - Keeps track of all registered users, their scan activities, and system audit logs.
+    - Dedicated **User Records** management panel (`/admin/users`).
+    - Full visibility over all case logs across all users.
+  - **Forensic Analyst (User)**:
+    - Ingests and analyzes images.
+    - Inspects and manages their own case investigation history.
 
 - **🔐 Cryptographic File Integrity**:
   - Calculates MD5, SHA-1, SHA-256, and SHA-512 cryptographic digests to establish file fingerprints and evidence chains of custody.
@@ -38,13 +46,11 @@ This project provides a clean, unified web platform and desktop tool to inspect 
   - Automatically parses EXIF GPS DMS coordinates into decimal latitude & longitude.
   - Displays capture coordinates and pinpoints location on an interactive OpenStreetMap (Leaflet.js).
 
-- **🗄️ User Authentication & SQLite Database**:
-  - User registration and login system with secure password hashing (`werkzeug.security`).
-  - Automatic audit logging: every scan is stored in `forensics.db` with timestamp, file metrics, verdict, and authenticity score.
-  - Investigation History page with search and delete options.
-  - Default demo accounts for project evaluation:
-    - **Student**: `student` / `password123`
-    - **Admin**: `admin` / `admin123`
+- **🗄️ Persistent SQLite Database (`forensics.db`)**:
+  - Automatically records every analysis into `analysis_history` table with timestamps, file metrics, verdict, and authenticity score.
+  - Pre-configured system accounts:
+    - **Lab Administrator**: `admin` / `admin123`
+    - **Forensic Analyst**: `user1` / `password123`
 
 - **📊 Comprehensive Forensic Reports**:
   - Download official court-ready **PDF Forensic Report** generated using ReportLab.
@@ -70,9 +76,18 @@ python -m pip install -r requirements.txt
 ```bash
 python main.py
 ```
-*Your browser will automatically open to `http://127.0.0.1:5000`.*
+*Your browser will automatically open to `http://127.0.0.1:5000` presenting the Sign In screen.*
 
-### 4. Optional: Run Desktop Tkinter GUI
+### 4. Default Credentials
+- **Lab Administrator**:
+  - Username: `admin`
+  - Password: `admin123`
+- **Forensic Analyst**:
+  - Username: `user1`
+  - Password: `password123`
+- Or register a new account from the Sign In page.
+
+### 5. Optional: Run Desktop Tkinter GUI
 To run the original Tkinter desktop window:
 ```bash
 python main.py --desktop
@@ -80,41 +95,34 @@ python main.py --desktop
 
 ---
 
-## 🧪 Built-in Test Cases
-
-The application includes 3 one-click test cases for presentation:
-1. **Authentic DSLR Photo**: Nikon D850 DSLR capture with authentic hardware EXIF and Pune GPS coordinates.
-2. **Manipulated Splice**: Image with duplicated spliced objects, Photoshop signature, and timestamp anomalies.
-3. **Metadata Stripped Image**: Simulates social media / web compression with all camera metadata removed.
-
----
-
 ## 📁 Project Architecture
 
 ```
 image_forensics_project/
-├── app.py                   # Flask server, authentication & REST API
-├── database.py              # SQLite database manager (users & history logs)
+├── app.py                   # Flask server, authentication & role routes
+├── database.py              # SQLite database manager (users, roles, history)
 ├── forensics.db             # Local SQLite database file
 ├── forensic_engine.py       # Core forensic algorithms (hashes, ELA, noise, GPS, scoring)
 ├── pdf_report_generator.py  # ReportLab PDF, TXT, and JSON report generator
 ├── generate_samples.py      # Automated generator for forensic test samples
+├── view_db.py               # Terminal utility to inspect SQLite database tables
 ├── main.py                  # Dual launcher (Web platform by default / Desktop GUI)
 ├── ui_app.py                # Original desktop Tkinter application
 ├── image_utils.py           # Original image hash & software detection utilities
 ├── report_generator.py      # Original desktop report generator
 ├── requirements.txt         # Project dependencies
-├── README.md                # Documentation & academic project details
-├── preview.html             # Interactive project simulator
+├── README.md                # Documentation & system details
+├── preview.html             # Project simulation preview
 ├── templates/
-│   ├── base.html            # Main academic base template with college banner & navbar
-│   ├── index.html           # Main analysis dashboard with split slider & dossier
-│   ├── login.html           # Student & investigator login page
+│   ├── base.html            # System layout, header banner & navbar
+│   ├── index.html           # Main analysis dashboard (split slider, ELA, dossier)
+│   ├── login.html           # User & Administrator sign in page
 │   ├── register.html        # New user registration page
 │   ├── history.html         # SQLite forensic history audit table & search
-│   └── about.html           # Team members, guide & SPPU project details
+│   ├── admin_users.html     # Lab Administrator user management table
+│   └── about.html           # System architecture, forensic methods & specifications
 └── static/
-    ├── css/style.css        # Academic styling, split slider & clean card layouts
+    ├── css/style.css        # Responsive layout, split slider & clean card layouts
     ├── js/app.js            # Client-side reactivity, Leaflet GPS & ELA tuning
     └── samples/             # Authentic, tampered, and stripped test samples
 ```

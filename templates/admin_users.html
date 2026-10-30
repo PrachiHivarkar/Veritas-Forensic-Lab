@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - Lab Administrator{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Admin Top Header Card -->
+    <div class="content-header-card">
+        <div class="header-text-group">
+            <h2><i class="fa-solid fa-users-gear"></i> Lab Administrator - User Records</h2>
+            <p>Maintain records of all registered forensic analysts, account details, and total image analysis activities.</p>
+        </div>
+
+        <div class="history-stats-pills">
+            <div class="stat-pill">
+                <span class="stat-pill-label">Registered Users:</span>
+                <span class="stat-pill-val">{{ users|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Toolbar -->
+    <div class="table-toolbar">
+        <div class="search-input-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="user-search" placeholder="Search users by name, username, or email...">
+        </div>
+        <div class="toolbar-actions">
+            <a href="{{ url_for('history') }}" class="btn-primary-sm">
+                <i class="fa-solid fa-list-check"></i> View All Audit Logs
+            </a>
+        </div>
+    </div>
+
+    <!-- Users Table Card -->
+    <div class="content-card">
+        <div class="table-responsive">
+            <table class="data-table" id="users-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">ID</th>
+                        <th>User Profile</th>
+                        <th>Email Address</th>
+                        <th>System Role</th>
+                        <th>Total Scans Performed</th>
+                        <th>Last Analysis Date</th>
+                        <th>Registered On</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                        <tr id="user-row-{{ u.id }}">
+                            <td class="text-muted">#{{ u.id }}</td>
+                            <td>
+                                <strong>{{ u.full_name or u.username }}</strong>
+                                <div class="meta-subtext">
+                                    <span>@{{ u.username }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span>{{ u.email }}</span>
+                            </td>
+                            <td>
+                                {% if u.role == 'admin' %}
+                                    <span class="badge badge-danger"><i class="fa-solid fa-shield-halved"></i> Lab Administrator</span>
+                                {% else %}
+                                    <span class="badge badge-success"><i class="fa-solid fa-user"></i> Forensic Analyst</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="score-pill score-high">
+                                    {{ u.scan_count }} scans
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-muted font-mono" style="font-size: 0.75rem;">
+                                    {{ u.last_scan_date or 'No scans yet' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-muted font-mono" style="font-size: 0.75rem;">
+                                    {{ u.created_at }}
+                                </span>
+                            </td>
+                            <td style="text-align: right;">
+                                {% if u.username != 'admin' %}
+                                    <form method="POST" action="{{ url_for('delete_user_route', target_user_id=u.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete user account: {{ u.username }}?');">
+                                        <button type="submit" class="btn-icon-danger" title="Delete User Account">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <span class="text-muted" style="font-size: 0.72rem; font-style: italic;">Primary Admin</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Real-time table search filter
+    const searchInput = document.getElementById("user-search");
+    if (searchInput) {
+        searchInput.addEventListener("input", function(e) {
+            const query = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll("#users-table tbody tr");
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? "" : "none";
+            });
+        });
+    }
+</script>
+{% endblock %}

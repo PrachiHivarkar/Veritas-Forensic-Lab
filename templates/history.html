@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Investigation History - Digital Image Forensics Tool{% endblock %}
+{% block title %}Investigation History - Digital Image Forensics System{% endblock %}
 
 {% block content %}
 <div class="page-container">
@@ -8,13 +8,26 @@
     <!-- Page Header & Stats Summary -->
     <div class="content-header-card">
         <div class="header-text-group">
-            <h2><i class="fa-solid fa-clock-rotate-left"></i> Forensic Investigation History</h2>
-            <p>Historical audit logs and forensic inspection records saved in local SQLite database (<code>forensics.db</code>).</p>
+            <h2>
+                <i class="fa-solid fa-clock-rotate-left"></i> 
+                {% if is_admin %}
+                    All Forensic Audit Logs (Administrator View)
+                {% else %}
+                    My Forensic Investigation History
+                {% endif %}
+            </h2>
+            <p>
+                {% if is_admin %}
+                    Viewing historical audit logs and forensic inspection records across all registered analysts stored in <code>forensics.db</code>.
+                {% else %}
+                    Your past image inspection records and case verification results stored in local SQLite database.
+                {% endif %}
+            </p>
         </div>
 
         <div class="history-stats-pills">
             <div class="stat-pill">
-                <span class="stat-pill-label">Total Analyzed:</span>
+                <span class="stat-pill-label">Total Records:</span>
                 <span class="stat-pill-val">{{ stats.total_scans }}</span>
             </div>
             <div class="stat-pill green">
@@ -36,9 +49,14 @@
     <div class="table-toolbar">
         <div class="search-input-wrap">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="history-search" placeholder="Search by file name, SHA-256 hash, or verdict...">
+            <input type="text" id="history-search" placeholder="Search by file name, SHA-256 hash, analyst, or verdict...">
         </div>
         <div class="toolbar-actions">
+            {% if is_admin %}
+                <a href="{{ url_for('admin_users') }}" class="btn-primary-sm" style="background: var(--bg-card); border: 1px solid var(--border-color); color: #fff;">
+                    <i class="fa-solid fa-users-gear"></i> User Accounts
+                </a>
+            {% endif %}
             <a href="{{ url_for('index') }}" class="btn-primary-sm">
                 <i class="fa-solid fa-plus"></i> New Analysis
             </a>
@@ -54,6 +72,9 @@
                         <tr>
                             <th style="width: 50px;">#</th>
                             <th>Timestamp</th>
+                            {% if is_admin %}
+                                <th>Analyst</th>
+                            {% endif %}
                             <th>File Name &amp; Dimensions</th>
                             <th>Cryptographic Checksums</th>
                             <th>Hardware &amp; Software</th>
@@ -65,16 +86,21 @@
                     <tbody>
                         {% for item in records %}
                             <tr id="row-{{ item.id }}">
-                                <td class="text-muted">{{ item.id }}</td>
+                                <td class="text-muted">#{{ item.id }}</td>
                                 <td>
                                     <div class="date-cell">
                                         <i class="fa-regular fa-calendar"></i>
                                         <span>{{ item.created_at }}</span>
                                     </div>
-                                    {% if item.username %}
-                                        <span class="user-subtext"><i class="fa-solid fa-user"></i> {{ item.username }}</span>
-                                    {% endif %}
                                 </td>
+                                {% if is_admin %}
+                                    <td>
+                                        <strong style="color: #60a5fa;">{{ item.username or 'Guest/System' }}</strong>
+                                        {% if item.user_role == 'admin' %}
+                                            <span class="badge badge-danger" style="font-size: 0.65rem; padding: 0.1rem 0.35rem; display: block; width: fit-content; margin-top: 2px;">Admin</span>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
                                 <td>
                                     <strong>{{ item.filename }}</strong>
                                     <div class="meta-subtext">
@@ -126,7 +152,7 @@
             <div class="empty-state">
                 <i class="fa-solid fa-folder-open empty-state-icon"></i>
                 <h3>No Forensic Records Found</h3>
-                <p>No images have been analyzed yet. Upload and analyze an image to save your first forensic audit record into the SQLite database.</p>
+                <p>No images have been analyzed yet in this account. Upload and analyze an image from the dashboard to create your first case audit record.</p>
                 <a href="{{ url_for('index') }}" class="btn-primary-sm">
                     <i class="fa-solid fa-upload"></i> Go to Analysis Dashboard
                 </a>

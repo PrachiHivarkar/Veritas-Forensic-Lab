@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Project &amp; Team Details - Digital Image Forensics Tool{% endblock %}
+{% block title %}System Architecture &amp; Methodology - Digital Image Forensics System{% endblock %}
 
 {% block content %}
 <div class="page-container">
@@ -8,119 +8,114 @@
     <!-- About Header Card -->
     <div class="content-header-card">
         <div class="header-text-group">
-            <h2><i class="fa-solid fa-graduation-cap"></i> Final Year Mini Project Details</h2>
-            <p>Department of Computer Engineering, PES Modern College of Engineering, Pune (SPPU 2026-27).</p>
+            <h2><i class="fa-solid fa-microchip"></i> System Architecture &amp; Forensic Methodology</h2>
+            <p>Technical specifications, forensic inspection techniques, and role-based access control architecture.</p>
         </div>
     </div>
 
     <div class="about-grid">
-        <!-- Project Specifications Card -->
+        <!-- System Specifications Card -->
         <div class="content-card">
-            <h3 class="card-title"><i class="fa-solid fa-book-bookmark"></i> Academic Project Overview</h3>
+            <h3 class="card-title"><i class="fa-solid fa-server"></i> System Specifications</h3>
             <table class="spec-table">
                 <tbody>
                     <tr>
-                        <td class="spec-label">Project Title</td>
-                        <td class="spec-val">Digital Image Forensics Tool &amp; Web Platform</td>
+                        <td class="spec-label">System Title</td>
+                        <td class="spec-val">Digital Image Forensics System &amp; Web Platform</td>
                     </tr>
                     <tr>
-                        <td class="spec-label">Course / Degree</td>
-                        <td class="spec-val">Bachelor of Engineering (B.E. Computer Engineering)</td>
+                        <td class="spec-label">Application Type</td>
+                        <td class="spec-val">Full-Stack Forensic Web Platform &amp; Desktop GUI</td>
                     </tr>
                     <tr>
-                        <td class="spec-label">Affiliated University</td>
-                        <td class="spec-val">Savitribai Phule Pune University (SPPU)</td>
+                        <td class="spec-label">Backend Framework</td>
+                        <td class="spec-val">Python 3 &amp; Flask (REST API)</td>
                     </tr>
                     <tr>
-                        <td class="spec-label">Institute</td>
-                        <td class="spec-val">Progressive Education Society's Modern College of Engineering, Pune</td>
+                        <td class="spec-label">Database Engine</td>
+                        <td class="spec-val">SQLite (Local zero-configuration database: <code>forensics.db</code>)</td>
                     </tr>
                     <tr>
-                        <td class="spec-label">Department</td>
-                        <td class="spec-val">Department of Computer Engineering</td>
+                        <td class="spec-label">Security &amp; Auth</td>
+                        <td class="spec-val">Werkzeug Password Hashing (PBKDF2/SHA-256) &amp; Session Management</td>
                     </tr>
                     <tr>
-                        <td class="spec-label">Academic Year</td>
-                        <td class="spec-val">2026 - 2027</td>
+                        <td class="spec-label">Computer Vision</td>
+                        <td class="spec-val">OpenCV (4.12) &amp; Pillow (11.1)</td>
                     </tr>
                     <tr>
-                        <td class="spec-label">Project Guide</td>
-                        <td class="spec-val"><strong>Mrs. Priyanka Hoval</strong> (Assistant Professor)</td>
+                        <td class="spec-label">Report Generation</td>
+                        <td class="spec-val">ReportLab (Dynamic Court-Ready PDF Documentation)</td>
                     </tr>
                     <tr>
-                        <td class="spec-label">Head of Department</td>
-                        <td class="spec-val"><strong>Prof. Dr. Mrs. S. A. Itkar</strong> (H.O.D.)</td>
+                        <td class="spec-label">Mapping Service</td>
+                        <td class="spec-val">Leaflet.js &amp; OpenStreetMap (GPS Geotag Parsing)</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- Student Team Card -->
+        <!-- Role Architecture Card -->
         <div class="content-card">
-            <h3 class="card-title"><i class="fa-solid fa-users"></i> Project Team Members</h3>
+            <h3 class="card-title"><i class="fa-solid fa-user-shield"></i> Role-Based Access Control</h3>
             <div class="team-cards-list">
                 <div class="team-member-item">
-                    <div class="member-avatar"><i class="fa-solid fa-user-graduate"></i></div>
+                    <div class="member-avatar"><i class="fa-solid fa-shield-halved text-danger"></i></div>
                     <div class="member-meta">
-                        <h4>Kalyani Borse</h4>
-                        <span class="member-roll">Roll No: 42209</span>
-                        <span class="member-dept">B.E. Computer Engineering</span>
+                        <h4>Lab Administrator</h4>
+                        <span class="member-roll">Role: admin</span>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                            Maintains records of all registered users, tracks total image analysis activity across the system, manages accounts, and reviews full forensic audit logs.
+                        </p>
                     </div>
                 </div>
 
                 <div class="team-member-item">
-                    <div class="member-avatar"><i class="fa-solid fa-user-graduate"></i></div>
+                    <div class="member-avatar"><i class="fa-solid fa-user-check text-success"></i></div>
                     <div class="member-meta">
-                        <h4>Shashank Dattu</h4>
-                        <span class="member-roll">Roll No: 42212</span>
-                        <span class="member-dept">B.E. Computer Engineering</span>
-                    </div>
-                </div>
-
-                <div class="team-member-item">
-                    <div class="member-avatar"><i class="fa-solid fa-user-graduate"></i></div>
-                    <div class="member-meta">
-                        <h4>Prachi Hivarkar</h4>
-                        <span class="member-roll">Roll No: 42219</span>
-                        <span class="member-dept">B.E. Computer Engineering</span>
+                        <h4>Forensic Analyst</h4>
+                        <span class="member-roll">Role: user</span>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                            Uploads and analyzes digital images, tunes Error Level Analysis (ELA) parameters, inspects hardware EXIF tags and GPS data, and exports case reports.
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Methodology & System Architecture Card -->
+    <!-- Forensic Techniques Grid -->
     <div class="content-card" style="margin-top: 1.5rem;">
-        <h3 class="card-title"><i class="fa-solid fa-gears"></i> Implemented Forensic Techniques &amp; Methodology</h3>
+        <h3 class="card-title"><i class="fa-solid fa-gears"></i> Forensic Analysis Techniques Implemented</h3>
         <div class="features-summary-grid">
             <div class="feature-box">
                 <div class="feature-icon"><i class="fa-solid fa-hashtag"></i></div>
-                <h4>Cryptographic Hashes</h4>
-                <p>Calculates MD5, SHA-1, SHA-256, and SHA-512 hashes simultaneously to establish file verification and immutable chain-of-custody.</p>
+                <h4>Cryptographic Verification</h4>
+                <p>Computes MD5, SHA-1, SHA-256, and SHA-512 hashes simultaneously to establish file fingerprints and immutable chain-of-custody.</p>
             </div>
 
             <div class="feature-box">
                 <div class="feature-icon"><i class="fa-solid fa-sliders"></i></div>
                 <h4>Error Level Analysis (ELA)</h4>
-                <p>Re-compresses images at a controlled JPEG quality (90%) and calculates pixel difference to detect spliced and retouched elements.</p>
+                <p>Re-compresses images at controlled JPEG quality levels to detect differences in compression history characteristic of image splicing.</p>
             </div>
 
             <div class="feature-box">
                 <div class="feature-icon"><i class="fa-solid fa-camera"></i></div>
                 <h4>EXIF Hardware Reconstruction</h4>
-                <p>Extracts camera make, model, lens model, exposure parameters, and detects signatures of editors like Adobe Photoshop and GIMP.</p>
+                <p>Extracts camera make, model, lens model, shutter speed, aperture, ISO, and software processing signatures (e.g. Adobe Photoshop, GIMP).</p>
             </div>
 
             <div class="feature-box">
-                <div class="feature-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+                <div class="feature-icon"><i class="fa-solid fa-location-dot"></i></div>
                 <h4>GPS Geolocation Mapping</h4>
                 <p>Parses EXIF DMS GPS coordinates into decimal latitude/longitude and pinpoints capture location on an interactive OpenStreetMap layer.</p>
             </div>
 
             <div class="feature-box">
                 <div class="feature-icon"><i class="fa-solid fa-database"></i></div>
-                <h4>SQLite Database Storage</h4>
-                <p>Maintains persistent user accounts, authentication hashes (Werkzeug), and historical investigation logs locally without external DB servers.</p>
+                <h4>Persistent SQLite Audit Logging</h4>
+                <p>Automatically records forensic scans into a local SQLite database, enabling case tracking and analyst accountability.</p>
             </div>
 
             <div class="feature-box">

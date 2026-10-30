@@ -1,12 +1,13 @@
 """
 Digital Image Forensics Tool - Web Platform & REST API Server
-Department of Computer Engineering, PES Modern College of Engineering, Pune.
-Savitribai Phule Pune University (SPPU) Mini Project.
+A unified platform for image authentication, Error Level Analysis (ELA),
+cryptographic verification, and user management.
 """
 
 import os
 import io
 import json
+from functools import wraps
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session, flash
 from flask_cors import CORS
 import forensic_engine
@@ -15,7 +16,7 @@ import database
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 CORS(app)
-app.secret_key = os.environ.get("SECRET_KEY", "pes_mcoe_csdf_forensics_2026_key")
+app.secret_key = os.environ.get("SECRET_KEY", "digital_forensics_lab_auth_key_2026")
 app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32 MB max upload
 
 # Initialize database on server startup
@@ -29,31 +30,60 @@ LAST_FILENAME = "image"
 SAMPLE_INFO = [
     {
         "id": "sample_authentic.jpg",
-        "title": "Authentic DSLR Photo",
+        "title": "Authentic Camera Capture",
         "badge": "Genuine EXIF + GPS",
         "badge_color": "success",
-        "desc": "Nikon D850 DSLR capture with authentic hardware EXIF, 50mm lens profile, and Pune GPS coordinates."
+        "desc": "DSLR photo with genuine camera hardware EXIF, lens profile, and embedded GPS coordinates."
     },
     {
         "id": "sample_tampered.jpg",
         "title": "Manipulated / Spliced Image",
         "badge": "Photoshop + Splice",
         "badge_color": "danger",
-        "desc": "Altered image with spliced and duplicated elements, Photoshop software signature, and time mismatch."
+        "desc": "Altered image with spliced objects, editing software signature, and timestamp inconsistencies."
     },
     {
         "id": "sample_stripped.png",
-        "title": "Social Media Sanitized Image",
+        "title": "Metadata Stripped Image",
         "badge": "Metadata Stripped",
         "badge_color": "warning",
-        "desc": "Sanitized graphic with all camera metadata stripped, simulating WhatsApp or web upload compression."
+        "desc": "Web/social media graphic with camera metadata scrubbed during compression."
     }
 ]
 
 
+# -------------------------------------------------------------
+# Authentication & Role Decorators
+# -------------------------------------------------------------
+
+def login_required(f):
+    """Decorator to require login before accessing routes."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            flash("Please sign in to access the system.", "info")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def admin_required(f):
+    """Decorator to restrict access to Lab Administrators only."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            flash("Administrator login required.", "danger")
+            return redirect(url_for("login"))
+        if session.get("role") != "admin":
+            flash("Access denied. Administrator privileges required.", "danger")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 @app.context_processor
 def inject_user():
-    """Make current_user accessible in all Jinja templates."""
+    """Make current_user and user role accessible in all Jinja templates."""
     user = None
     if "user_id" in session:
         user = database.get_user_by_id(session["user_id"])
@@ -66,14 +96,19 @@ def inject_user():
 
 @app.route("/")
 def index():
-    """Main image forensic analysis dashboard."""
-    stats = database.get_dashboard_statistics(session.get("user_id"))
+    """Home / Analysis dashboard. Requires login; redirects to /login if not authenticated."""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session.get("user_id")
+    is_admin = (session.get("role") == "admin")
+    stats = database.get_dashboard_statistics(user_id=user_id, is_admin=is_admin)
     return render_template("index.html", stats=stats)
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    """User and student login page."""
+    """User and Administrator login page."""
     if "user_id" in session:
         return redirect(url_for("index"))
 
@@ -90,7 +125,10 @@ def login():
             session["user_id"] = user["id"]
             session["username"] = user["username"]
             session["full_name"] = user["full_name"]
-            flash(f"Welcome back, {user['full_name'] or user['username']}!", "success")
+            session["role"] = user.get("role", "user")
+
+            role_title = "Lab Administrator" if user.get("role") == "admin" else "Forensic Analyst"
+            flash(f"Welcome, {user['full_name'] or user['username']} ({role_title})!", "success")
             return redirect(url_for("index"))
         else:
             flash("Invalid username/email or password. Please try again.", "danger")
@@ -100,7 +138,7 @@ def login():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    """Student / User registration page."""
+    """New user registration page."""
     if "user_id" in session:
         return redirect(url_for("index"))
 
@@ -123,11 +161,13 @@ def register():
             flash("Password must be at least 6 characters long.", "danger")
             return render_template("register.html")
 
-        result = database.create_user(username, email, password, full_name)
+        # Standard users are registered with role 'user'
+        result = database.create_user(username, email, password, full_name, role="user")
         if result["success"]:
             session["user_id"] = result["user_id"]
             session["username"] = username
             session["full_name"] = full_name
+            session["role"] = "user"
             flash("Account registered successfully! You are now logged in.", "success")
             return redirect(url_for("index"))
         else:
@@ -145,17 +185,43 @@ def logout():
 
 
 @app.route("/history")
+@login_required
 def history():
-    """Display past forensic analysis scans stored in SQLite database."""
+    """
+    Display investigation history:
+    - Administrator sees audit logs across ALL users.
+    - Regular users see only their own analyses.
+    """
     user_id = session.get("user_id")
-    records = database.get_user_history(user_id=user_id, limit=100)
-    stats = database.get_dashboard_statistics(user_id=user_id)
-    return render_template("history.html", records=records, stats=stats)
+    is_admin = (session.get("role") == "admin")
+    records = database.get_user_history(user_id=user_id, is_admin=is_admin, limit=100)
+    stats = database.get_dashboard_statistics(user_id=user_id, is_admin=is_admin)
+    return render_template("history.html", records=records, stats=stats, is_admin=is_admin)
+
+
+@app.route("/admin/users")
+@admin_required
+def admin_users():
+    """Lab Administrator panel to view and manage all registered users."""
+    users = database.get_all_users_with_stats()
+    return render_template("admin_users.html", users=users)
+
+
+@app.route("/admin/users/delete/<int:target_user_id>", methods=["POST"])
+@admin_required
+def delete_user_route(target_user_id):
+    """Delete a user account (Lab Administrator only)."""
+    success, msg = database.delete_user(target_user_id)
+    if success:
+        flash(msg, "success")
+    else:
+        flash(msg, "danger")
+    return redirect(url_for("admin_users"))
 
 
 @app.route("/about")
 def about():
-    """About project, SPPU syllabus, guided by Mrs. Priyanka Hoval."""
+    """About project, forensic methodologies, and system architecture."""
     return render_template("about.html")
 
 
@@ -164,6 +230,7 @@ def about():
 # -------------------------------------------------------------
 
 @app.route("/api/samples", methods=["GET"])
+@login_required
 def get_samples():
     """Get list of pre-configured sample images."""
     return jsonify({"samples": SAMPLE_INFO})
@@ -180,8 +247,9 @@ def serve_sample(name):
 
 
 @app.route("/api/analyze", methods=["POST"])
+@login_required
 def analyze_image():
-    """Core image analysis endpoint."""
+    """Core image analysis endpoint. Automatically saves record to SQLite database."""
     global LAST_IMAGE_BYTES, LAST_FILENAME, LAST_ANALYSIS
     file_bytes = None
     filename = "uploaded_image"
@@ -216,7 +284,7 @@ def analyze_image():
         LAST_FILENAME = filename
         LAST_ANALYSIS = results
 
-        # Save record to SQLite database
+        # Save record to SQLite database linked to current authenticated user
         user_id = session.get("user_id")
         record_id = database.save_analysis_record(user_id, results)
         results["record_id"] = record_id
@@ -227,6 +295,7 @@ def analyze_image():
 
 
 @app.route("/api/ela", methods=["POST"])
+@login_required
 def recalculate_ela():
     """Recompute ELA with custom quality and scale parameters."""
     global LAST_IMAGE_BYTES
@@ -250,6 +319,7 @@ def recalculate_ela():
 
 
 @app.route("/api/download-report/<fmt>", methods=["GET"])
+@login_required
 def download_report(fmt):
     """Download forensic report in PDF, TXT, or JSON format."""
     global LAST_ANALYSIS, LAST_FILENAME
@@ -314,10 +384,12 @@ def download_report(fmt):
 
 
 @app.route("/api/history/<int:record_id>", methods=["DELETE"])
+@login_required
 def delete_history_api(record_id):
-    """Delete a record from analysis history."""
+    """Delete a record from analysis history. Administrator can delete any; users only their own."""
     user_id = session.get("user_id")
-    success = database.delete_history_record(record_id, user_id=user_id)
+    is_admin = (session.get("role") == "admin")
+    success = database.delete_history_record(record_id, user_id=user_id, is_admin=is_admin)
     if success:
         return jsonify({"success": True, "message": "Record deleted."})
     return jsonify({"success": False, "error": "Record not found or not authorized."}), 404
@@ -329,7 +401,6 @@ def health():
     return jsonify({
         "status": "online",
         "system": "Digital Image Forensics System",
-        "college": "PES Modern College of Engineering, Pune",
         "database": "SQLite (Connected)"
     })
 

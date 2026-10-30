@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}User Login - Digital Image Forensics Tool{% endblock %}
+{% block title %}Sign In - Digital Image Forensics System{% endblock %}
 
 {% block content %}
 <div class="auth-page-container">
@@ -9,19 +9,19 @@
             <div class="auth-icon">
                 <i class="fa-solid fa-user-lock"></i>
             </div>
-            <h2>Student &amp; Investigator Login</h2>
-            <p>Access your forensic investigation dashboard and analysis history.</p>
+            <h2>Sign In to Forensic System</h2>
+            <p>Enter your credentials to access the image analysis dashboard and investigation records.</p>
         </div>
 
         <form method="POST" action="{{ url_for('login') }}" class="auth-form">
             <div class="form-group">
-                <label for="identifier"><i class="fa-solid fa-user"></i> Username or College Email</label>
-                <input type="text" id="identifier" name="identifier" class="form-control" placeholder="e.g. student or student@pesmcoe.ac.in" required autofocus>
+                <label for="identifier"><i class="fa-solid fa-user"></i> Username or Email</label>
+                <input type="text" id="identifier" name="identifier" class="form-control" placeholder="e.g. admin or user1" required autofocus>
             </div>
 
             <div class="form-group">
                 <label for="password"><i class="fa-solid fa-key"></i> Password</label>
-                <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
+                <input type="password" id="password" name="password" class="form-control" placeholder="Enter password" required>
             </div>
 
             <button type="submit" class="btn-primary-block">
@@ -29,24 +29,26 @@
             </button>
         </form>
 
-        <!-- Quick Demo Credentials Box for Evaluation -->
+        <!-- Pre-Configured System Accounts -->
         <div class="demo-credentials-box">
-            <div class="demo-badge"><i class="fa-solid fa-circle-info"></i> Project Evaluation Demo Accounts:</div>
+            <div class="demo-badge"><i class="fa-solid fa-circle-info"></i> Pre-Configured System Accounts:</div>
             <div class="demo-creds-grid">
                 <div class="demo-cred-item">
-                    <span>Student Login:</span>
-                    <code>student</code> / <code>password123</code>
-                </div>
-                <div class="demo-cred-item">
-                    <span>Admin Login:</span>
+                    <span><strong>Lab Administrator:</strong></span>
                     <code>admin</code> / <code>admin123</code>
                 </div>
+                <div class="demo-cred-item">
+                    <span><strong>Forensic Analyst:</strong></span>
+                    <code>user1</code> / <code>password123</code>
+                </div>
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-dim); margin-top: 0.4rem;">
+                * Administrators can view and manage all user accounts and complete system scan logs.
             </div>
         </div>
 
         <div class="auth-footer">
-            <p>Don't have an account yet? <a href="{{ url_for('register') }}">Register here</a></p>
-            <p><a href="{{ url_for('index') }}" class="text-muted"><i class="fa-solid fa-arrow-left"></i> Continue to Analyzer as Guest</a></p>
+            <p>Don't have an account? <a href="{{ url_for('register') }}">Create an account here</a></p>
         </div>
     </div>
 </div>

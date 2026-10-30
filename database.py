@@ -1,6 +1,6 @@
 """
 Database module for Digital Image Forensics Tool.
-Uses SQLite for zero-configuration, lightweight local storage of users and analysis history.
+Uses SQLite for storage of user accounts, roles (Administrator vs User), and analysis history.
 """
 
 import sqlite3
@@ -20,11 +20,11 @@ def get_db_connection():
 
 
 def init_db():
-    """Initialize database tables and create default demo accounts if not existing."""
+    """Initialize database tables, ensure roles exist, and seed default accounts."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Users table
+    # Users table with role column ('admin' or 'user')
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,9 +32,17 @@ def init_db():
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             full_name TEXT,
+            role TEXT DEFAULT 'user',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
+
+    # Check if 'role' column exists in case table was created earlier without it
+    cursor.execute("PRAGMA table_info(users)")
+    columns = [col["name"] for col in cursor.fetchall()]
+    if "role" not in columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
+        conn.commit()
 
     # Analysis history table
     cursor.execute("""
@@ -58,35 +66,51 @@ def init_db():
         );
     """)
 
-    # Check if default demo users exist, if not, create them
-    cursor.execute("SELECT COUNT(*) FROM users")
-    count = cursor.fetchone()[0]
+    # Ensure default Administrator and User accounts exist
+    cursor.execute("SELECT id, username, role FROM users WHERE username = 'admin'")
+    admin_row = cursor.fetchone()
+    if not admin_row:
+        cursor.execute("""
+            INSERT INTO users (username, email, password_hash, full_name, role)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            "admin",
+            "admin@forensics.local",
+            generate_password_hash("admin123"),
+            "Lab Administrator",
+            "admin"
+        ))
+    else:
+        # Ensure role is set to 'admin'
+        cursor.execute("UPDATE users SET role = 'admin' WHERE username = 'admin'")
 
-    if count == 0:
-        demo_users = [
-            ("student", "student@pesmcoe.ac.in", generate_password_hash("password123"), "Student Researcher"),
-            ("admin", "admin@pesmcoe.ac.in", generate_password_hash("admin123"), "Forensic Lab Administrator")
-        ]
-        cursor.executemany("""
-            INSERT INTO users (username, email, password_hash, full_name)
-            VALUES (?, ?, ?, ?)
-        """, demo_users)
-        conn.commit()
+    cursor.execute("SELECT id FROM users WHERE username = 'user1'")
+    if not cursor.fetchone():
+        cursor.execute("""
+            INSERT INTO users (username, email, password_hash, full_name, role)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            "user1",
+            "user1@forensics.local",
+            generate_password_hash("password123"),
+            "Forensic Analyst",
+            "user"
+        ))
 
     conn.commit()
     conn.close()
 
 
-def create_user(username, email, password, full_name=""):
-    """Register a new user."""
+def create_user(username, email, password, full_name="", role="user"):
+    """Register a new user account."""
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         pw_hash = generate_password_hash(password)
         cursor.execute("""
-            INSERT INTO users (username, email, password_hash, full_name)
-            VALUES (?, ?, ?, ?)
-        """, (username.strip(), email.strip().lower(), pw_hash, full_name.strip()))
+            INSERT INTO users (username, email, password_hash, full_name, role)
+            VALUES (?, ?, ?, ?, ?)
+        """, (username.strip(), email.strip().lower(), pw_hash, full_name.strip(), role))
         conn.commit()
         user_id = cursor.lastrowid
         return {"success": True, "user_id": user_id}
@@ -123,14 +147,57 @@ def get_user_by_id(user_id):
     """Fetch user by ID."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, username, email, full_name, created_at FROM users WHERE id = ?", (user_id,))
+    cursor.execute("SELECT id, username, email, full_name, role, created_at FROM users WHERE id = ?", (user_id,))
     user = cursor.fetchone()
     conn.close()
     return dict(user) if user else None
 
 
+def get_all_users_with_stats():
+    """Fetch all users and their respective scan statistics for the Administrator."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 
+            u.id, 
+            u.username, 
+            u.email, 
+            u.full_name, 
+            u.role, 
+            u.created_at,
+            COUNT(h.id) AS scan_count,
+            MAX(h.created_at) AS last_scan_date
+        FROM users u
+        LEFT JOIN analysis_history h ON u.id = h.user_id
+        GROUP BY u.id
+        ORDER BY u.id ASC
+    """)
+    users = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return users
+
+
+def delete_user(user_id):
+    """Delete a user account (admin only). Prevents deleting the primary admin."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Check if user is primary admin
+    cursor.execute("SELECT username FROM users WHERE id = ?", (user_id,))
+    row = cursor.fetchone()
+    if row and row["username"] == "admin":
+        conn.close()
+        return False, "Cannot delete primary system administrator account."
+    
+    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    conn.commit()
+    affected = cursor.rowcount
+    conn.close()
+    return affected > 0, "User account deleted successfully."
+
+
 def save_analysis_record(user_id, analysis_data):
-    """Save forensic analysis results to the database."""
+    """Save forensic analysis results to the database associated with user_id."""
     fi = analysis_data.get("file_info", {})
     hashes = analysis_data.get("hashes", {})
     exif = analysis_data.get("exif", {})
@@ -182,28 +249,32 @@ def save_analysis_record(user_id, analysis_data):
     return record_id
 
 
-def get_user_history(user_id=None, limit=50):
-    """Fetch analysis history for a specific user, or all if user_id is None."""
+def get_user_history(user_id=None, is_admin=False, limit=100):
+    """
+    Fetch analysis history:
+    - If is_admin=True, fetch records across ALL users.
+    - If is_admin=False, fetch records belonging specifically to user_id.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    if user_id:
+    if is_admin:
         cursor.execute("""
-            SELECT h.*, u.username
+            SELECT h.*, u.username, u.full_name as user_full_name, u.role as user_role
+            FROM analysis_history h
+            LEFT JOIN users u ON h.user_id = u.id
+            ORDER BY h.id DESC
+            LIMIT ?
+        """, (limit,))
+    else:
+        cursor.execute("""
+            SELECT h.*, u.username, u.full_name as user_full_name, u.role as user_role
             FROM analysis_history h
             LEFT JOIN users u ON h.user_id = u.id
             WHERE h.user_id = ?
             ORDER BY h.id DESC
             LIMIT ?
         """, (user_id, limit))
-    else:
-        cursor.execute("""
-            SELECT h.*, u.username
-            FROM analysis_history h
-            LEFT JOIN users u ON h.user_id = u.id
-            ORDER BY h.id DESC
-            LIMIT ?
-        """, (limit,))
 
     records = [dict(row) for row in cursor.fetchall()]
     conn.close()
@@ -225,22 +296,22 @@ def get_history_record_by_id(record_id):
     return dict(row) if row else None
 
 
-def delete_history_record(record_id, user_id=None):
-    """Delete a record from analysis history."""
+def delete_history_record(record_id, user_id=None, is_admin=False):
+    """Delete a record from analysis history. Admin can delete any; users only their own."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    if user_id:
-        cursor.execute("DELETE FROM analysis_history WHERE id = ? AND user_id = ?", (record_id, user_id))
-    else:
+    if is_admin:
         cursor.execute("DELETE FROM analysis_history WHERE id = ?", (record_id,))
+    else:
+        cursor.execute("DELETE FROM analysis_history WHERE id = ? AND user_id = ?", (record_id, user_id))
     conn.commit()
     affected = cursor.rowcount
     conn.close()
     return affected > 0
 
 
-def get_dashboard_statistics(user_id=None):
-    """Return summary stats of all scans."""
+def get_dashboard_statistics(user_id=None, is_admin=False):
+    """Return summary stats of scans."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -250,10 +321,10 @@ def get_dashboard_statistics(user_id=None):
                  "SUM(CASE WHEN verdict LIKE '%SUSPICIOUS%' OR verdict LIKE '%STRIPPED%' OR verdict LIKE '%MEDIUM%' THEN 1 ELSE 0 END) as suspicious_count " \
                  "FROM analysis_history"
 
-    if user_id:
-        cursor.execute(base_query + " WHERE user_id = ?", (user_id,))
-    else:
+    if is_admin or not user_id:
         cursor.execute(base_query)
+    else:
+        cursor.execute(base_query + " WHERE user_id = ?", (user_id,))
 
     row = cursor.fetchone()
     conn.close()

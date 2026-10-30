@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Digital Image Forensics System{% endblock %}</title>
     
-    <!-- Standard Clean Fonts & Icons -->
+    <!-- Clean Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -20,17 +20,15 @@
 </head>
 <body class="student-app-theme">
 
-    <!-- Top Academic College Header -->
+    <!-- Top System Header Bar -->
     <div class="college-topbar">
         <div class="topbar-container">
             <div class="topbar-left">
-                <i class="fa-solid fa-graduation-cap"></i>
-                <span>Progressive Education Society's Modern College of Engineering, Pune</span>
-                <span class="divider">|</span>
-                <span>Department of Computer Engineering</span>
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Digital Image Forensics &amp; Tamper Verification Platform</span>
             </div>
             <div class="topbar-right">
-                <span>BE Mini Project 2026-27 (SPPU)</span>
+                <span>Cryptographic Hashes • Error Level Analysis (ELA) • EXIF Parser</span>
             </div>
         </div>
     </div>
@@ -48,28 +46,46 @@
                 </div>
             </a>
 
-            <nav class="nav-links">
-                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
-                    <i class="fa-solid fa-microscope"></i> Analysis
-                </a>
-                <a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint == 'history' %}active{% endif %}">
-                    <i class="fa-solid fa-clock-rotate-left"></i> History
-                </a>
-                <a href="{{ url_for('about') }}" class="nav-link {% if request.endpoint == 'about' %}active{% endif %}">
-                    <i class="fa-solid fa-users"></i> Project &amp; Team
-                </a>
-            </nav>
+            {% if current_user %}
+                <nav class="nav-links">
+                    <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                        <i class="fa-solid fa-microscope"></i> Analysis
+                    </a>
+                    <a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint == 'history' %}active{% endif %}">
+                        <i class="fa-solid fa-clock-rotate-left"></i> History
+                    </a>
+                    {% if current_user.role == 'admin' %}
+                        <a href="{{ url_for('admin_users') }}" class="nav-link {% if request.endpoint == 'admin_users' %}active{% endif %}" style="color: #60a5fa; font-weight: 600;">
+                            <i class="fa-solid fa-users-gear"></i> User Records
+                        </a>
+                    {% endif %}
+                    <a href="{{ url_for('about') }}" class="nav-link {% if request.endpoint == 'about' %}active{% endif %}">
+                        <i class="fa-solid fa-circle-info"></i> About
+                    </a>
+                </nav>
 
-            <div class="nav-auth">
-                {% if current_user %}
+                <div class="nav-auth">
                     <div class="user-badge">
-                        <span class="user-avatar"><i class="fa-solid fa-user-check"></i></span>
-                        <span class="user-name">{{ current_user.full_name or current_user.username }}</span>
+                        <span class="user-avatar">
+                            {% if current_user.role == 'admin' %}
+                                <i class="fa-solid fa-user-shield text-danger" title="Lab Administrator"></i>
+                            {% else %}
+                                <i class="fa-solid fa-user-check text-success" title="Forensic Analyst"></i>
+                            {% endif %}
+                        </span>
+                        <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                            <span class="user-name">{{ current_user.full_name or current_user.username }}</span>
+                            <span style="font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase;">
+                                {% if current_user.role == 'admin' %}Lab Administrator{% else %}Analyst{% endif %}
+                            </span>
+                        </div>
                         <a href="{{ url_for('logout') }}" class="btn-logout" title="Sign Out">
                             <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
                         </a>
                     </div>
-                {% else %}
+                </div>
+            {% else %}
+                <div class="nav-auth">
                     <div class="auth-buttons">
                         <a href="{{ url_for('login') }}" class="btn-nav-login">
                             <i class="fa-solid fa-arrow-right-to-bracket"></i> Login
@@ -78,8 +94,8 @@
                             <i class="fa-solid fa-user-plus"></i> Register
                         </a>
                     </div>
-                {% endif %}
-            </div>
+                </div>
+            {% endif %}
         </div>
     </header>
 
@@ -103,29 +119,30 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Student Project Footer -->
+    <!-- Project Footer -->
     <footer class="app-footer">
-        <div class="footer-container">
+        <div class="footer-container" style="grid-template-columns: 2fr 1fr 1fr;">
             <div class="footer-section">
-                <h4>Digital Image Forensics Tool</h4>
-                <p>A university mini-project developed in Python and Flask demonstrating cryptographic file integrity verification, Error Level Analysis (ELA), EXIF hardware reconstruction, and image tamper assessment.</p>
+                <h4>Digital Image Forensics System</h4>
+                <p>A software platform for evaluating digital image authenticity, detecting spliced regions using Error Level Analysis (ELA), calculating cryptographic checksums, and decoding hardware EXIF metadata.</p>
             </div>
             <div class="footer-section">
-                <h4>Project Team (Group 4)</h4>
+                <h4>Core Modules</h4>
                 <ul>
-                    <li>Kalyani Borse (Roll No: 42209)</li>
-                    <li>Shashank Dattu (Roll No: 42212)</li>
-                    <li>Prachi Hivarkar (Roll No: 42219)</li>
+                    <li>Error Level Analysis (ELA)</li>
+                    <li>Cryptographic Hashes (SHA-256)</li>
+                    <li>EXIF Hardware Fingerprinting</li>
+                    <li>Interactive GPS Geolocation</li>
                 </ul>
             </div>
             <div class="footer-section">
-                <h4>Under Guidance Of</h4>
-                <p><strong>Mrs. Priyanka Hoval</strong><br>Internal Supervisor, Dept. of Computer Engineering<br>PES Modern College of Engineering, Pune</p>
+                <h4>System Architecture</h4>
+                <p>Backend: Python &amp; Flask<br>Database: SQLite (Local)<br>Vision: OpenCV &amp; Pillow<br>Reporting: ReportLab (PDF)</p>
             </div>
         </div>
         <div class="footer-bottom">
-            <span>&copy; 2026 - 2027 Savitribai Phule Pune University (SPPU) • Computer Engineering Mini Project</span>
-            <span>Database: SQLite • Backend: Flask • Vision: OpenCV &amp; Pillow</span>
+            <span>&copy; Digital Image Forensics System • Image Authentication &amp; Tamper Verification</span>
+            <span>Database: SQLite • Platform Security: Werkzeug Auth</span>
         </div>
     </footer>
 
