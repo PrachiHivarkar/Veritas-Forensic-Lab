@@ -1,5 +1,6 @@
 /**
- * VERITAS Digital Image Forensics Lab - Client Application
+ * Digital Image Forensics System - Client Application
+ * Department of Computer Engineering, PES Modern College of Engineering, Pune.
  * Handles file ingestion, live ELA re-computation, split comparison slider,
  * Leaflet GPS mapping, magnifier loupe, and report downloads.
  */
@@ -42,12 +43,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Action Buttons
     const btnNewAnalysis = document.getElementById("btn-new-analysis");
-    const btnQuickSamples = document.getElementById("btn-quick-samples");
     const btnLoupe = document.getElementById("btn-loupe");
     const btnZoomIn = document.getElementById("btn-zoom-in");
     const btnZoomOut = document.getElementById("btn-zoom-out");
     const btnZoomReset = document.getElementById("btn-zoom-reset");
-    const btnFullscreen = document.getElementById("btn-fullscreen");
     const rawTagSearch = document.getElementById("raw-tag-search");
 
     // Initialize Event Listeners
@@ -57,7 +56,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setupElaSliders();
     setupDossierTabs();
     setupLoupeAndZoom();
-    setupSampleLoader();
 
     // -------------------------------------------------------------
     // File Ingestion & Drag / Drop / Paste
@@ -112,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function showLoading(title, step) {
         if (loadingOverlay) {
-            loadingTitle.textContent = title || "PROCESSING FORENSIC MATRIX...";
+            loadingTitle.textContent = title || "Analyzing Image...";
             loadingStep.textContent = step || "Extracting metadata, ELA, and cryptographic hashes";
             loadingOverlay.classList.remove("hidden");
         }
@@ -125,7 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function uploadFile(file) {
-        showLoading("INGESTING FORENSIC EVIDENCE...", `Analyzing ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+        showLoading("Analyzing Image...", `Processing ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
         const formData = new FormData();
         formData.append("file", file);
 
@@ -143,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 showToast("Analysis Error: " + data.error, "danger");
             } else {
                 renderAnalysis(data);
-                showToast(`Analysis complete for ${data.file_info.filename}`, "success");
+                showToast(`Analysis complete and saved to database (#${data.record_id || 'new'})`, "success");
             }
         })
         .catch(err => {
@@ -156,11 +154,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // Sample Loader
     // -------------------------------------------------------------
     window.loadSample = function(sampleId) {
-        showLoading("LOADING SAMPLE EVIDENCE...", `Fetching ${sampleId} for verification`);
+        showLoading("Loading Test Case...", `Loading ${sampleId} for verification`);
         fetch("/api/analyze", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: jsonString({ sample: sampleId })
+            body: JSON.stringify({ sample: sampleId })
         })
         .then(res => res.json())
         .then(data => {
@@ -169,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 showToast("Sample Error: " + data.error, "danger");
             } else {
                 renderAnalysis(data);
-                showToast(`Loaded forensic sample: ${sampleId}`, "success");
+                showToast(`Loaded test sample: ${sampleId}`, "success");
             }
         })
         .catch(err => {
@@ -178,24 +176,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
-    function setupSampleLoader() {
-        if (btnQuickSamples) {
-            btnQuickSamples.addEventListener("click", () => {
-                const sampleCards = document.getElementById("sample-cards-list");
-                if (sampleCards) {
-                    sampleCards.scrollIntoView({ behavior: "smooth" });
-                    sampleCards.style.animation = "beaconPulse 1s ease";
-                }
-            });
-        }
-    }
-
-    function jsonString(obj) {
-        return JSON.stringify(obj);
-    }
-
     // -------------------------------------------------------------
-    // Render Results & Intelligence Dossier
+    // Render Results
     // -------------------------------------------------------------
     function renderAnalysis(data) {
         currentAnalysis = data;
@@ -207,7 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Populate Floating Viewport Badges
         const fi = data.file_info;
         document.getElementById("chip-dimensions").innerHTML = `<i class="fa-solid fa-vector-square"></i> ${fi.resolution}`;
-        document.getElementById("chip-format").innerHTML = `<i class="fa-solid fa-file-code"></i> ${fi.format}`;
+        document.getElementById("chip-format").innerHTML = `<i class="fa-solid fa-file"></i> ${fi.format}`;
         document.getElementById("chip-colormode").innerHTML = `<i class="fa-solid fa-palette"></i> ${fi.color_mode}`;
 
         // Populate Main Images
@@ -218,42 +200,37 @@ document.addEventListener("DOMContentLoaded", () => {
         // Set Default Mode to Original or Split
         setViewportMode("original");
 
-        // Populate Verdict Banner & Gauge
+        // Populate Verdict Banner & Score Box
         const verdict = data.verdict;
         const scoreVal = document.getElementById("authenticity-score-val");
         const verdictTitle = document.getElementById("verdict-title");
         const verdictCard = document.getElementById("verdict-card");
-        const verdictGauge = document.getElementById("verdict-gauge");
         const badgesContainer = document.getElementById("verdict-badges-container");
 
         scoreVal.textContent = `${verdict.authenticity_score}%`;
         verdictTitle.textContent = verdict.risk_level;
 
-        // Color classes
-        verdictCard.className = "verdict-banner-card";
-        verdictTitle.className = "verdict-status";
-
-        if (verdict.verdict_color === "danger") {
-            verdictCard.classList.add("verdict-danger");
-            verdictTitle.classList.add("text-danger");
-            verdictGauge.style.background = `conic-gradient(var(--neon-danger) 0deg, var(--neon-danger) ${verdict.authenticity_score * 3.6}deg, rgba(255,255,255,0.08) ${verdict.authenticity_score * 3.6}deg)`;
-            verdictGauge.style.boxShadow = `0 0 15px rgba(255, 51, 102, 0.4)`;
-        } else if (verdict.verdict_color === "warning") {
-            verdictCard.classList.add("verdict-warning");
-            verdictTitle.classList.add("text-warning");
-            verdictGauge.style.background = `conic-gradient(var(--neon-warning) 0deg, var(--neon-warning) ${verdict.authenticity_score * 3.6}deg, rgba(255,255,255,0.08) ${verdict.authenticity_score * 3.6}deg)`;
-            verdictGauge.style.boxShadow = `0 0 15px rgba(245, 158, 11, 0.4)`;
-        } else {
-            verdictTitle.classList.add("text-success");
-            verdictGauge.style.background = `conic-gradient(var(--neon-emerald) 0deg, var(--neon-emerald) ${verdict.authenticity_score * 3.6}deg, rgba(255,255,255,0.08) ${verdict.authenticity_score * 3.6}deg)`;
-            verdictGauge.style.boxShadow = `0 0 15px rgba(16, 185, 129, 0.4)`;
+        // Score box border color
+        const scoreBox = verdictCard.querySelector(".verdict-score-box");
+        if (scoreBox) {
+            if (verdict.verdict_color === "danger") {
+                scoreBox.style.borderColor = "var(--danger-red)";
+                verdictTitle.style.color = "var(--danger-red)";
+            } else if (verdict.verdict_color === "warning") {
+                scoreBox.style.borderColor = "var(--warning-amber)";
+                verdictTitle.style.color = "var(--warning-amber)";
+            } else {
+                scoreBox.style.borderColor = "var(--success-green)";
+                verdictTitle.style.color = "var(--success-green)";
+            }
         }
 
         // Badges
         badgesContainer.innerHTML = "";
         (verdict.badges || []).forEach(b => {
             const span = document.createElement("span");
-            span.className = `v-badge ${b.color}`;
+            const badgeClass = b.color === "danger" ? "badge-danger" : (b.color === "warning" ? "badge-warning" : "badge-success");
+            span.className = `badge ${badgeClass}`;
             span.textContent = b.label;
             badgesContainer.appendChild(span);
         });
@@ -269,8 +246,8 @@ document.addEventListener("DOMContentLoaded", () => {
             item.className = `finding-item ${f.type}`;
             const iconClass = f.type === "danger" ? "fa-triangle-exclamation" : (f.type === "warning" ? "fa-circle-exclamation" : "fa-circle-check");
             item.innerHTML = `
-                <i class="fa-solid ${iconClass} finding-icon"></i>
-                <div class="finding-content">
+                <i class="fa-solid ${iconClass}" style="color: ${f.type === 'danger' ? 'var(--danger-red)' : (f.type === 'warning' ? 'var(--warning-amber)' : 'var(--success-green)')}; margin-top: 2px;"></i>
+                <div>
                     <h6>${f.title}</h6>
                     <p>${f.detail}</p>
                 </div>
@@ -293,20 +270,20 @@ document.addEventListener("DOMContentLoaded", () => {
         // Populate EXIF Hardware (Tab 2)
         const exif = data.exif;
         const cam = exif.camera || {};
-        document.getElementById("exif-make").textContent = cam.Make || "Not Specified";
-        document.getElementById("exif-model").textContent = cam.Model || "Not Specified";
-        document.getElementById("exif-lens").textContent = cam.LensModel || "Not Specified";
+        document.getElementById("exif-make").textContent = cam.Make || "Not specified";
+        document.getElementById("exif-model").textContent = cam.Model || "Not specified";
+        document.getElementById("exif-lens").textContent = cam.LensModel || "Not specified";
 
         const swEl = document.getElementById("exif-software");
         if (exif.software_detected) {
             swEl.textContent = exif.detected_software_name || exif.software;
-            swEl.className = "td-val highlight-danger";
+            swEl.style.color = "var(--danger-red)";
         } else if (exif.software) {
             swEl.textContent = exif.software;
-            swEl.className = "td-val";
+            swEl.style.color = "var(--warning-amber)";
         } else {
             swEl.textContent = "None detected";
-            swEl.className = "td-val";
+            swEl.style.color = "var(--text-main)";
         }
 
         const exp = exif.exposure || {};
@@ -370,7 +347,7 @@ document.addEventListener("DOMContentLoaded", () => {
             elaControlsBar.style.display = "flex";
             splitImgBefore.src = currentAnalysis.preview_image;
             splitImgAfter.src = currentAnalysis.ela.ela_image;
-            guideText.textContent = "Drag the center divider to contrast the original evidence against Error Level Analysis.";
+            guideText.textContent = "Drag the center divider horizontally to contrast the original evidence against Error Level Analysis.";
         } else {
             splitViewWrap.classList.add("hidden");
             singleViewWrap.classList.remove("hidden");
@@ -391,11 +368,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 mainDisplayImg.src = currentAnalysis.gradient_image || currentAnalysis.preview_image;
                 elaControlsBar.style.display = "none";
                 guideText.textContent = "Luminance Gradient: Highlights edges and lighting vector directionality across the scene.";
-            } else if (mode === "chroma") {
-                const chroma = currentAnalysis.color_channels;
-                mainDisplayImg.src = chroma.chroma_cb || currentAnalysis.preview_image;
-                elaControlsBar.style.display = "none";
-                guideText.textContent = "Chrominance Channel Map (YCbCr Cb): Emphasizes color subsampling boundaries.";
             } else if (mode === "clones") {
                 const cloneImg = currentAnalysis.clone_detection.clone_image;
                 mainDisplayImg.src = cloneImg || currentAnalysis.preview_image;
@@ -476,7 +448,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 fetch("/api/ela", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: jsonString({ quality, scale })
+                    body: JSON.stringify({ quality, scale })
                 })
                 .then(res => res.json())
                 .then(data => {
@@ -520,7 +492,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const targetPane = document.getElementById(btn.dataset.tab);
                 if (targetPane) {
                     targetPane.classList.add("active");
-                    // Invalidate Leaflet map size when tab becomes visible
                     if (btn.dataset.tab === "tab-gps" && leafletMap) {
                         setTimeout(() => leafletMap.invalidateSize(), 200);
                     }
@@ -568,7 +539,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const mapLink = document.getElementById("gps-map-link");
         mapLink.href = `https://www.google.com/maps?q=${lat},${lon}`;
 
-        // Initialize or update Leaflet Map
         const mapContainer = document.getElementById("leaflet-map");
         if (!mapContainer) return;
 
@@ -580,13 +550,11 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             leafletMap = L.map("leaflet-map").setView([lat, lon], 14);
 
-            // Dark CartoDB Tile Layer
-            L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-                attribution: '&copy; <a href="https://carto.com/">CartoDB</a> & OpenStreetMap contributors',
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 maxZoom: 19
             }).addTo(leafletMap);
 
-            // Glowing Marker
             const marker = L.marker([lat, lon]).addTo(leafletMap);
             marker.bindPopup(`<b>Evidence Geolocation</b><br/>Lat: ${lat}<br/>Lon: ${lon}<br/>Alt: ${alt}`).openPopup();
 
@@ -606,7 +574,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tbody.innerHTML = "";
 
         if (!tags || Object.keys(tags).length === 0) {
-            tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No EXIF tags discovered.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-muted); padding: 1rem;">No EXIF tags discovered.</td></tr>`;
             return;
         }
 
@@ -614,7 +582,7 @@ document.addEventListener("DOMContentLoaded", () => {
         sortedKeys.forEach(tag => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
-                <td style="color: var(--neon-cyan); font-weight: 600;">${tag}</td>
+                <td style="color: #60a5fa; font-weight: 600;">${tag}</td>
                 <td>${escapeHtml(String(tags[tag]))}</td>
             `;
             tbody.appendChild(tr);
@@ -658,7 +626,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 magnifierGlass.classList.remove("hidden");
-                const glassRadius = 90;
+                const glassRadius = 80;
                 magnifierGlass.style.left = `${e.clientX - stageRect.left - glassRadius}px`;
                 magnifierGlass.style.top = `${e.clientY - stageRect.top - glassRadius}px`;
 
@@ -691,16 +659,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (btnZoomReset) {
             btnZoomReset.addEventListener("click", () => {
                 resetZoom();
-            });
-        }
-
-        if (btnFullscreen) {
-            btnFullscreen.addEventListener("click", () => {
-                if (!document.fullscreenElement) {
-                    stage.requestFullscreen().catch(() => {});
-                } else {
-                    document.exitFullscreen().catch(() => {});
-                }
             });
         }
     }
@@ -745,7 +703,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
-        const icon = type === "success" ? "fa-circle-check" : (type === "danger" ? "fa-circle-exclamation" : "fa-circle-info");
+        const icon = type === "success" ? "fa-circle-check text-success" : (type === "danger" ? "fa-circle-exclamation text-danger" : "fa-circle-info text-info");
         toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
         container.appendChild(toast);
 

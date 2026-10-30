@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Project &amp; Team Details - Digital Image Forensics Tool{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- About Header Card -->
+    <div class="content-header-card">
+        <div class="header-text-group">
+            <h2><i class="fa-solid fa-graduation-cap"></i> Final Year Mini Project Details</h2>
+            <p>Department of Computer Engineering, PES Modern College of Engineering, Pune (SPPU 2026-27).</p>
+        </div>
+    </div>
+
+    <div class="about-grid">
+        <!-- Project Specifications Card -->
+        <div class="content-card">
+            <h3 class="card-title"><i class="fa-solid fa-book-bookmark"></i> Academic Project Overview</h3>
+            <table class="spec-table">
+                <tbody>
+                    <tr>
+                        <td class="spec-label">Project Title</td>
+                        <td class="spec-val">Digital Image Forensics Tool &amp; Web Platform</td>
+                    </tr>
+                    <tr>
+                        <td class="spec-label">Course / Degree</td>
+                        <td class="spec-val">Bachelor of Engineering (B.E. Computer Engineering)</td>
+                    </tr>
+                    <tr>
+                        <td class="spec-label">Affiliated University</td>
+                        <td class="spec-val">Savitribai Phule Pune University (SPPU)</td>
+                    </tr>
+                    <tr>
+                        <td class="spec-label">Institute</td>
+                        <td class="spec-val">Progressive Education Society's Modern College of Engineering, Pune</td>
+                    </tr>
+                    <tr>
+                        <td class="spec-label">Department</td>
+                        <td class="spec-val">Department of Computer Engineering</td>
+                    </tr>
+                    <tr>
+                        <td class="spec-label">Academic Year</td>
+                        <td class="spec-val">2026 - 2027</td>
+                    </tr>
+                    <tr>
+                        <td class="spec-label">Project Guide</td>
+                        <td class="spec-val"><strong>Mrs. Priyanka Hoval</strong> (Assistant Professor)</td>
+                    </tr>
+                    <tr>
+                        <td class="spec-label">Head of Department</td>
+                        <td class="spec-val"><strong>Prof. Dr. Mrs. S. A. Itkar</strong> (H.O.D.)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Student Team Card -->
+        <div class="content-card">
+            <h3 class="card-title"><i class="fa-solid fa-users"></i> Project Team Members</h3>
+            <div class="team-cards-list">
+                <div class="team-member-item">
+                    <div class="member-avatar"><i class="fa-solid fa-user-graduate"></i></div>
+                    <div class="member-meta">
+                        <h4>Kalyani Borse</h4>
+                        <span class="member-roll">Roll No: 42209</span>
+                        <span class="member-dept">B.E. Computer Engineering</span>
+                    </div>
+                </div>
+
+                <div class="team-member-item">
+                    <div class="member-avatar"><i class="fa-solid fa-user-graduate"></i></div>
+                    <div class="member-meta">
+                        <h4>Shashank Dattu</h4>
+                        <span class="member-roll">Roll No: 42212</span>
+                        <span class="member-dept">B.E. Computer Engineering</span>
+                    </div>
+                </div>
+
+                <div class="team-member-item">
+                    <div class="member-avatar"><i class="fa-solid fa-user-graduate"></i></div>
+                    <div class="member-meta">
+                        <h4>Prachi Hivarkar</h4>
+                        <span class="member-roll">Roll No: 42219</span>
+                        <span class="member-dept">B.E. Computer Engineering</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Methodology & System Architecture Card -->
+    <div class="content-card" style="margin-top: 1.5rem;">
+        <h3 class="card-title"><i class="fa-solid fa-gears"></i> Implemented Forensic Techniques &amp; Methodology</h3>
+        <div class="features-summary-grid">
+            <div class="feature-box">
+                <div class="feature-icon"><i class="fa-solid fa-hashtag"></i></div>
+                <h4>Cryptographic Hashes</h4>
+                <p>Calculates MD5, SHA-1, SHA-256, and SHA-512 hashes simultaneously to establish file verification and immutable chain-of-custody.</p>
+            </div>
+
+            <div class="feature-box">
+                <div class="feature-icon"><i class="fa-solid fa-sliders"></i></div>
+                <h4>Error Level Analysis (ELA)</h4>
+                <p>Re-compresses images at a controlled JPEG quality (90%) and calculates pixel difference to detect spliced and retouched elements.</p>
+            </div>
+
+            <div class="feature-box">
+                <div class="feature-icon"><i class="fa-solid fa-camera"></i></div>
+                <h4>EXIF Hardware Reconstruction</h4>
+                <p>Extracts camera make, model, lens model, exposure parameters, and detects signatures of editors like Adobe Photoshop and GIMP.</p>
+            </div>
+
+            <div class="feature-box">
+                <div class="feature-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+                <h4>GPS Geolocation Mapping</h4>
+                <p>Parses EXIF DMS GPS coordinates into decimal latitude/longitude and pinpoints capture location on an interactive OpenStreetMap layer.</p>
+            </div>
+
+            <div class="feature-box">
+                <div class="feature-icon"><i class="fa-solid fa-database"></i></div>
+                <h4>SQLite Database Storage</h4>
+                <p>Maintains persistent user accounts, authentication hashes (Werkzeug), and historical investigation logs locally without external DB servers.</p>
+            </div>
+
+            <div class="feature-box">
+                <div class="feature-icon"><i class="fa-solid fa-file-pdf"></i></div>
+                <h4>Automated Reporting</h4>
+                <p>Generates court-ready PDF documents using ReportLab, structured plain-text files, and machine-readable JSON exports.</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

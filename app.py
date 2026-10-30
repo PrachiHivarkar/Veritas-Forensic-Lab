@@ -1,19 +1,25 @@
 """
-VERITAS - Digital Image Forensics Web Application Server
-Flask-based backend providing REST API and interactive forensic web interface.
+Digital Image Forensics Tool - Web Platform & REST API Server
+Department of Computer Engineering, PES Modern College of Engineering, Pune.
+Savitribai Phule Pune University (SPPU) Mini Project.
 """
 
 import os
 import io
 import json
-from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session, flash
 from flask_cors import CORS
 import forensic_engine
 import pdf_report_generator
+import database
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 CORS(app)
+app.secret_key = os.environ.get("SECRET_KEY", "pes_mcoe_csdf_forensics_2026_key")
 app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32 MB max upload
+
+# Initialize database on server startup
+database.init_db()
 
 # In-memory storage for active session analysis
 LAST_ANALYSIS = {}
@@ -23,46 +29,159 @@ LAST_FILENAME = "image"
 SAMPLE_INFO = [
     {
         "id": "sample_authentic.jpg",
-        "title": "Authentic Camera Capture",
+        "title": "Authentic DSLR Photo",
         "badge": "Genuine EXIF + GPS",
         "badge_color": "success",
-        "desc": "Nikon D850 DSLR photo with genuine lens profiles, ISO 100, and Pune GPS geolocation."
+        "desc": "Nikon D850 DSLR capture with authentic hardware EXIF, 50mm lens profile, and Pune GPS coordinates."
     },
     {
         "id": "sample_tampered.jpg",
-        "title": "Manipulated / Cloned Image",
+        "title": "Manipulated / Spliced Image",
         "badge": "Photoshop + Splice",
         "badge_color": "danger",
-        "desc": "Altered image with duplicated spliced objects, Photoshop metadata signature, and time mismatch."
+        "desc": "Altered image with spliced and duplicated elements, Photoshop software signature, and time mismatch."
     },
     {
         "id": "sample_stripped.png",
-        "title": "Stripped Web Asset",
-        "badge": "No EXIF",
+        "title": "Social Media Sanitized Image",
+        "badge": "Metadata Stripped",
         "badge_color": "warning",
-        "desc": "Sanitized graphic with all camera metadata removed, simulating social media compression."
+        "desc": "Sanitized graphic with all camera metadata stripped, simulating WhatsApp or web upload compression."
     }
 ]
 
+
+@app.context_processor
+def inject_user():
+    """Make current_user accessible in all Jinja templates."""
+    user = None
+    if "user_id" in session:
+        user = database.get_user_by_id(session["user_id"])
+    return dict(current_user=user)
+
+
+# -------------------------------------------------------------
+# Web Page Routes
+# -------------------------------------------------------------
+
 @app.route("/")
 def index():
-    return render_template("index.html")
+    """Main image forensic analysis dashboard."""
+    stats = database.get_dashboard_statistics(session.get("user_id"))
+    return render_template("index.html", stats=stats)
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    """User and student login page."""
+    if "user_id" in session:
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        identifier = request.form.get("identifier", "").strip()
+        password = request.form.get("password", "").strip()
+
+        if not identifier or not password:
+            flash("Please enter both username/email and password.", "danger")
+            return render_template("login.html")
+
+        user = database.verify_user(identifier, password)
+        if user:
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+            session["full_name"] = user["full_name"]
+            flash(f"Welcome back, {user['full_name'] or user['username']}!", "success")
+            return redirect(url_for("index"))
+        else:
+            flash("Invalid username/email or password. Please try again.", "danger")
+
+    return render_template("login.html")
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    """Student / User registration page."""
+    if "user_id" in session:
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        full_name = request.form.get("full_name", "").strip()
+        username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
+
+        if not username or not email or not password:
+            flash("All required fields must be filled out.", "danger")
+            return render_template("register.html")
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "danger")
+            return render_template("register.html")
+
+        if len(password) < 6:
+            flash("Password must be at least 6 characters long.", "danger")
+            return render_template("register.html")
+
+        result = database.create_user(username, email, password, full_name)
+        if result["success"]:
+            session["user_id"] = result["user_id"]
+            session["username"] = username
+            session["full_name"] = full_name
+            flash("Account registered successfully! You are now logged in.", "success")
+            return redirect(url_for("index"))
+        else:
+            flash(result["error"], "danger")
+
+    return render_template("register.html")
+
+
+@app.route("/logout")
+def logout():
+    """Clear session and log out."""
+    session.clear()
+    flash("You have been signed out successfully.", "info")
+    return redirect(url_for("login"))
+
+
+@app.route("/history")
+def history():
+    """Display past forensic analysis scans stored in SQLite database."""
+    user_id = session.get("user_id")
+    records = database.get_user_history(user_id=user_id, limit=100)
+    stats = database.get_dashboard_statistics(user_id=user_id)
+    return render_template("history.html", records=records, stats=stats)
+
+
+@app.route("/about")
+def about():
+    """About project, SPPU syllabus, guided by Mrs. Priyanka Hoval."""
+    return render_template("about.html")
+
+
+# -------------------------------------------------------------
+# REST API Endpoints
+# -------------------------------------------------------------
 
 @app.route("/api/samples", methods=["GET"])
 def get_samples():
+    """Get list of pre-configured sample images."""
     return jsonify({"samples": SAMPLE_INFO})
+
 
 @app.route("/api/sample-image/<name>", methods=["GET"])
 def serve_sample(name):
-    # Sanitize name
+    """Serve sample file from static/samples folder."""
     safe_name = os.path.basename(name)
     sample_path = os.path.join(app.static_folder, "samples", safe_name)
     if os.path.exists(sample_path):
         return send_file(sample_path)
     return jsonify({"error": "Sample not found"}), 404
 
+
 @app.route("/api/analyze", methods=["POST"])
 def analyze_image():
+    """Core image analysis endpoint."""
     global LAST_IMAGE_BYTES, LAST_FILENAME, LAST_ANALYSIS
     file_bytes = None
     filename = "uploaded_image"
@@ -96,12 +215,20 @@ def analyze_image():
         LAST_IMAGE_BYTES = file_bytes
         LAST_FILENAME = filename
         LAST_ANALYSIS = results
+
+        # Save record to SQLite database
+        user_id = session.get("user_id")
+        record_id = database.save_analysis_record(user_id, results)
+        results["record_id"] = record_id
+
         return jsonify(results)
     except Exception as e:
         return jsonify({"error": f"Failed to analyze image: {str(e)}"}), 500
 
+
 @app.route("/api/ela", methods=["POST"])
 def recalculate_ela():
+    """Recompute ELA with custom quality and scale parameters."""
     global LAST_IMAGE_BYTES
     if not LAST_IMAGE_BYTES:
         return jsonify({"error": "No image loaded yet to compute ELA"}), 400
@@ -121,8 +248,10 @@ def recalculate_ela():
     except Exception as e:
         return jsonify({"error": f"ELA calculation error: {str(e)}"}), 500
 
+
 @app.route("/api/download-report/<fmt>", methods=["GET"])
 def download_report(fmt):
+    """Download forensic report in PDF, TXT, or JSON format."""
     global LAST_ANALYSIS, LAST_FILENAME
     if not LAST_ANALYSIS:
         return jsonify({"error": "No forensic analysis data available. Analyze an image first."}), 400
@@ -151,7 +280,6 @@ def download_report(fmt):
         )
 
     elif fmt == "json":
-        # Create sanitized serializable dict without heavy image data URLs for compact JSON
         clean_json = {
             "file_info": LAST_ANALYSIS.get("file_info"),
             "hashes": LAST_ANALYSIS.get("hashes"),
@@ -184,11 +312,29 @@ def download_report(fmt):
 
     return jsonify({"error": f"Unknown format '{fmt}'. Use 'pdf', 'txt', or 'json'."}), 400
 
+
+@app.route("/api/history/<int:record_id>", methods=["DELETE"])
+def delete_history_api(record_id):
+    """Delete a record from analysis history."""
+    user_id = session.get("user_id")
+    success = database.delete_history_record(record_id, user_id=user_id)
+    if success:
+        return jsonify({"success": True, "message": "Record deleted."})
+    return jsonify({"success": False, "error": "Record not found or not authorized."}), 404
+
+
 @app.route("/health")
 def health():
-    return jsonify({"status": "online", "engine": "VERITAS Forensic Suite 2.0"})
+    """System health check endpoint."""
+    return jsonify({
+        "status": "online",
+        "system": "Digital Image Forensics System",
+        "college": "PES Modern College of Engineering, Pune",
+        "database": "SQLite (Connected)"
+    })
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    print(f"[*] Starting VERITAS Forensic Web Platform on http://127.0.0.1:{port}")
+    print(f"[*] Starting Digital Image Forensics Web Platform on http://127.0.0.1:{port}")
     app.run(host="127.0.0.1", port=port, debug=True)

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Digital Image Forensics System{% endblock %}</title>
+    
+    <!-- Standard Clean Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Leaflet.js Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Application Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="student-app-theme">
+
+    <!-- Top Academic College Header -->
+    <div class="college-topbar">
+        <div class="topbar-container">
+            <div class="topbar-left">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>Progressive Education Society's Modern College of Engineering, Pune</span>
+                <span class="divider">|</span>
+                <span>Department of Computer Engineering</span>
+            </div>
+            <div class="topbar-right">
+                <span>BE Mini Project 2026-27 (SPPU)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <header class="main-navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="nav-brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i>
+                </div>
+                <div class="brand-info">
+                    <span class="brand-name">Digital Image Forensics System</span>
+                    <span class="brand-dept">Authentication &amp; Tamper Detection Tool</span>
+                </div>
+            </a>
+
+            <nav class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                    <i class="fa-solid fa-microscope"></i> Analysis
+                </a>
+                <a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint == 'history' %}active{% endif %}">
+                    <i class="fa-solid fa-clock-rotate-left"></i> History
+                </a>
+                <a href="{{ url_for('about') }}" class="nav-link {% if request.endpoint == 'about' %}active{% endif %}">
+                    <i class="fa-solid fa-users"></i> Project &amp; Team
+                </a>
+            </nav>
+
+            <div class="nav-auth">
+                {% if current_user %}
+                    <div class="user-badge">
+                        <span class="user-avatar"><i class="fa-solid fa-user-check"></i></span>
+                        <span class="user-name">{{ current_user.full_name or current_user.username }}</span>
+                        <a href="{{ url_for('logout') }}" class="btn-logout" title="Sign Out">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="auth-buttons">
+                        <a href="{{ url_for('login') }}" class="btn-nav-login">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i> Login
+                        </a>
+                        <a href="{{ url_for('register') }}" class="btn-nav-register">
+                            <i class="fa-solid fa-user-plus"></i> Register
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Flash Messages (Alerts) -->
+    <div class="alerts-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'danger' %}fa-circle-exclamation{% else %}fa-circle-info{% endif %}"></i>
+                        <span>{{ message }}</span>
+                        <button type="button" class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content Block -->
+    <main class="page-body">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Student Project Footer -->
+    <footer class="app-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <h4>Digital Image Forensics Tool</h4>
+                <p>A university mini-project developed in Python and Flask demonstrating cryptographic file integrity verification, Error Level Analysis (ELA), EXIF hardware reconstruction, and image tamper assessment.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Project Team (Group 4)</h4>
+                <ul>
+                    <li>Kalyani Borse (Roll No: 42209)</li>
+                    <li>Shashank Dattu (Roll No: 42212)</li>
+                    <li>Prachi Hivarkar (Roll No: 42219)</li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Under Guidance Of</h4>
+                <p><strong>Mrs. Priyanka Hoval</strong><br>Internal Supervisor, Dept. of Computer Engineering<br>PES Modern College of Engineering, Pune</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>&copy; 2026 - 2027 Savitribai Phule Pune University (SPPU) • Computer Engineering Mini Project</span>
+            <span>Database: SQLite • Backend: Flask • Vision: OpenCV &amp; Pillow</span>
+        </div>
+    </footer>
+
+    <!-- Leaflet.js Map Library -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

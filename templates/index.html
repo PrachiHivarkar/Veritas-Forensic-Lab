@@ -1,525 +1,446 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VERITAS // Digital Image Forensics Lab</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body class="cyber-theme">
-    <!-- Background Grid Effect -->
-    <div class="cyber-grid"></div>
-    <div class="glow-orb orb-1"></div>
-    <div class="glow-orb orb-2"></div>
+{% extends "base.html" %}
 
-    <!-- Navigation Bar -->
-    <header class="app-header">
-        <div class="header-container">
-            <div class="logo-area">
-                <div class="logo-icon-wrapper">
-                    <i class="fa-solid fa-fingerprint logo-icon"></i>
-                    <span class="pulse-beacon"></span>
-                </div>
-                <div class="logo-text">
-                    <div class="brand-title">VERITAS <span class="brand-sub">LAB</span></div>
-                    <div class="brand-tagline">DIGITAL IMAGE FORENSICS & AUTHENTICATION SUITE</div>
-                </div>
+{% block title %}Digital Image Forensics System - PES MCOE Mini Project{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Top Summary Banner -->
+    <div class="dashboard-topbar">
+        <div class="topbar-welcome">
+            <h2>Digital Image Forensics &amp; Tamper Verification</h2>
+            <p>Inspect digital images for metadata integrity, JPEG compression anomalies (ELA), and cryptographic verification.</p>
+        </div>
+        <div class="quick-stats-group">
+            <div class="quick-stat-box">
+                <span class="qs-label">Total Analyzed</span>
+                <span class="qs-val">{{ stats.total_scans }}</span>
             </div>
-
-            <div class="header-center">
-                <div class="engine-badge">
-                    <span class="status-dot"></span>
-                    <span class="engine-text">FORENSIC ENGINE: <strong>ACTIVE</strong></span>
-                </div>
-                <div class="specs-badge">
-                    <i class="fa-solid fa-shield-halved"></i>
-                    <span>SHA-512 / ELA / EXIF / GPS</span>
-                </div>
+            <div class="quick-stat-box">
+                <span class="qs-label">Authentic</span>
+                <span class="qs-val text-success">{{ stats.authentic_count }}</span>
             </div>
-
-            <div class="header-actions">
-                <button id="btn-quick-samples" class="btn-ghost">
-                    <i class="fa-solid fa-flask-vial"></i> Load Samples
-                </button>
-                <a href="#about-modal" id="btn-info" class="btn-ghost" title="About & Methodology">
-                    <i class="fa-solid fa-circle-question"></i>
-                </a>
+            <div class="quick-stat-box">
+                <span class="qs-label">Tampered</span>
+                <span class="qs-val text-danger">{{ stats.tampered_count }}</span>
             </div>
         </div>
-    </header>
+    </div>
 
-    <!-- Quick Sample Selector Strip -->
-    <section class="sample-strip">
-        <div class="sample-container">
-            <div class="sample-label">
-                <i class="fa-solid fa-bolt-lightning"></i> QUICK DEMO PRESETS:
+    <!-- Quick Demo Presets Strip -->
+    <div class="sample-preset-strip">
+        <div class="preset-label">
+            <i class="fa-solid fa-flask"></i> Quick Demo Test Cases:
+        </div>
+        <div class="preset-buttons">
+            <button type="button" class="preset-btn btn-auth" onclick="loadSample('sample_authentic.jpg')">
+                <span class="p-dot green"></span>
+                <span class="p-title">Authentic DSLR Photo</span>
+                <span class="p-tag">Nikon D850 + GPS</span>
+            </button>
+            <button type="button" class="preset-btn btn-tamp" onclick="loadSample('sample_tampered.jpg')">
+                <span class="p-dot red"></span>
+                <span class="p-title">Manipulated Splice</span>
+                <span class="p-tag">Photoshop + Clone</span>
+            </button>
+            <button type="button" class="preset-btn btn-strip" onclick="loadSample('sample_stripped.png')">
+                <span class="p-dot yellow"></span>
+                <span class="p-title">Metadata Stripped Image</span>
+                <span class="p-tag">Zero EXIF</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Upload Drop Zone Card -->
+    <div class="content-card upload-card-wrapper" id="upload-zone-wrapper">
+        <div class="upload-dropzone" id="drop-zone">
+            <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/tiff,image/bmp" hidden>
+            <div class="upload-icon">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
             </div>
-            <div class="sample-cards" id="sample-cards-list">
-                <!-- Dynamically populated or static fallback -->
-                <button class="sample-pill sample-auth" onclick="loadSample('sample_authentic.jpg')">
-                    <span class="pill-dot green"></span>
-                    <span class="pill-title">Authentic DSLR Photo</span>
-                    <span class="pill-tag">Nikon D850 + GPS</span>
-                </button>
-                <button class="sample-pill sample-tamp" onclick="loadSample('sample_tampered.jpg')">
-                    <span class="pill-dot red"></span>
-                    <span class="pill-title">Manipulated Splice</span>
-                    <span class="pill-tag">Photoshop + Clone</span>
-                </button>
-                <button class="sample-pill sample-strip-btn" onclick="loadSample('sample_stripped.png')">
-                    <span class="pill-dot yellow"></span>
-                    <span class="pill-title">Sanitized Web Image</span>
-                    <span class="pill-tag">Zero EXIF</span>
-                </button>
+            <h3>Select or Drag &amp; Drop an Image File</h3>
+            <p class="upload-instructions">
+                Supports JPEG, PNG, TIFF, WEBP, and BMP formats (Max: 32 MB).<br>
+                You can also paste an image from your clipboard using <strong>Ctrl + V</strong>.
+            </p>
+            <button type="button" class="btn-browse-file" onclick="document.getElementById('file-input').click()">
+                <i class="fa-solid fa-folder-open"></i> Browse Local Files
+            </button>
+        </div>
+    </div>
+
+    <!-- Clean Analysis Loading Overlay -->
+    <div id="loading-overlay" class="analysis-loading-modal hidden">
+        <div class="loading-modal-card">
+            <div class="spinner-icon">
+                <i class="fa-solid fa-circle-notch fa-spin"></i>
+            </div>
+            <h4 id="loading-title">Analyzing Image...</h4>
+            <p id="loading-step">Extracting EXIF metadata, computing ELA, and calculating SHA-256 hashes.</p>
+            <div class="loading-progress-bar">
+                <div class="progress-fill"></div>
             </div>
         </div>
-    </section>
+    </div>
 
-    <!-- Main Container -->
-    <main class="main-layout">
+    <!-- Forensic Inspection Dashboard (Displayed after analysis) -->
+    <div id="results-dashboard" class="analysis-results-grid hidden">
 
-        <!-- Upload Drop Zone (Visible when no image is loaded, or minimizable) -->
-        <section class="upload-section" id="upload-zone-wrapper">
-            <div class="upload-card" id="drop-zone">
-                <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/tiff,image/bmp" hidden>
-                <div class="upload-scanner-line"></div>
-                <div class="upload-content">
-                    <div class="upload-icon-circle">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
-                    </div>
-                    <h3>Drag & Drop Forensic Evidence Image Here</h3>
-                    <p class="upload-sub">or <button type="button" class="btn-browse" onclick="document.getElementById('file-input').click()">Browse Local Files</button></p>
-                    <div class="upload-chips">
-                        <span><i class="fa-solid fa-image"></i> JPG, PNG, WEBP, TIFF, BMP</span>
-                        <span><i class="fa-solid fa-paste"></i> Ctrl + V (Paste Image)</span>
-                        <span><i class="fa-solid fa-microchip"></i> Max 32 MB</span>
-                    </div>
+        <!-- Left Column: Visual Inspector Viewport -->
+        <div class="content-card viewport-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <i class="fa-solid fa-eye"></i> Visual Forensic Inspector
+                </div>
+                <div class="viewport-tools">
+                    <button id="btn-loupe" class="btn-tool" title="Magnifier Loupe"><i class="fa-solid fa-magnifying-glass-plus"></i> Loupe</button>
+                    <button id="btn-zoom-in" class="btn-tool" title="Zoom In"><i class="fa-solid fa-plus"></i></button>
+                    <button id="btn-zoom-out" class="btn-tool" title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
+                    <button id="btn-zoom-reset" class="btn-tool" title="Reset Zoom"><i class="fa-solid fa-rotate-left"></i></button>
                 </div>
             </div>
-        </section>
 
-        <!-- Loading Scanner Overlay -->
-        <div id="loading-overlay" class="loading-overlay hidden">
-            <div class="scanner-box">
-                <div class="radar-scan"></div>
-                <i class="fa-solid fa-magnifying-glass-chart scan-icon"></i>
-                <h4 id="loading-title">PROCESSING FORENSIC MATRIX...</h4>
-                <p id="loading-step">Executing SHA-512 hashes & Error Level Analysis (ELA)</p>
-                <div class="progress-bar-wrap">
-                    <div class="progress-bar-fill"></div>
+            <!-- Viewport Mode Tabs -->
+            <div class="viewport-tabs-bar">
+                <button class="mode-btn active" data-mode="original"><i class="fa-solid fa-image"></i> Original</button>
+                <button class="mode-btn" data-mode="split"><i class="fa-solid fa-sliders"></i> Split Slider</button>
+                <button class="mode-btn" data-mode="ela"><i class="fa-solid fa-chart-line"></i> ELA Heatmap</button>
+                <button class="mode-btn" data-mode="noise"><i class="fa-solid fa-wave-square"></i> Noise Analysis</button>
+                <button class="mode-btn" data-mode="gradient"><i class="fa-solid fa-compass-drafting"></i> Luminance</button>
+                <button class="mode-btn" data-mode="clones"><i class="fa-solid fa-clone"></i> Copy-Move</button>
+            </div>
+
+            <!-- Dynamic ELA Parameter Tuning Bar -->
+            <div id="ela-controls-bar" class="ela-controls-bar">
+                <div class="slider-group">
+                    <label for="ela-quality">JPEG Quality: <span id="ela-quality-val" class="slider-badge">90%</span></label>
+                    <input type="range" id="ela-quality" min="30" max="98" value="90" step="1">
                 </div>
+                <div class="slider-group">
+                    <label for="ela-scale">Scale Amplifier: <span id="ela-scale-val" class="slider-badge">15x</span></label>
+                    <input type="range" id="ela-scale" min="2" max="40" value="15" step="1">
+                </div>
+                <button id="btn-apply-ela" class="btn-primary-sm">
+                    <i class="fa-solid fa-arrows-rotate"></i> Recalculate ELA
+                </button>
+            </div>
+
+            <!-- Image Canvas / Stage -->
+            <div class="viewport-stage" id="viewport-stage">
+                <!-- Standard Single Image View -->
+                <div id="single-view-wrap" class="view-layer">
+                    <img id="main-display-img" src="" alt="Forensic Analysis View" class="forensic-main-img">
+                </div>
+
+                <!-- Split Comparison View (Original vs ELA) -->
+                <div id="split-view-wrap" class="view-layer hidden">
+                    <div class="split-slider-container" id="split-container">
+                        <div class="split-image-before">
+                            <img id="split-img-before" src="" alt="Original Image">
+                            <span class="split-label label-left">ORIGINAL</span>
+                        </div>
+                        <div class="split-image-after" id="split-after-box">
+                            <img id="split-img-after" src="" alt="ELA Difference">
+                            <span class="split-label label-right">ELA HEATMAP</span>
+                        </div>
+                        <div class="split-divider" id="split-divider">
+                            <div class="split-handle">
+                                <i class="fa-solid fa-arrows-left-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Magnifier Loupe Glass -->
+                <div id="magnifier-glass" class="magnifier-glass hidden"></div>
+
+                <!-- Image Metadata Chips -->
+                <div class="viewport-chips">
+                    <span id="chip-dimensions" class="v-chip"><i class="fa-solid fa-vector-square"></i> -</span>
+                    <span id="chip-format" class="v-chip"><i class="fa-solid fa-file"></i> -</span>
+                    <span id="chip-colormode" class="v-chip"><i class="fa-solid fa-palette"></i> -</span>
+                </div>
+            </div>
+
+            <!-- Viewport Explainer Footer -->
+            <div class="viewport-guide" id="viewport-guide">
+                <i class="fa-solid fa-circle-info text-info"></i>
+                <span id="guide-text">Error Level Analysis reveals discrepancies in JPEG compression error rates across edited segments.</span>
             </div>
         </div>
 
-        <!-- Investigation Dashboard (Appears once image is analyzed) -->
-        <section id="results-dashboard" class="dashboard-grid hidden">
+        <!-- Right Column: Forensic Results & Findings -->
+        <div class="content-card dossier-panel">
 
-            <!-- Left Column: Visual Forensic Viewport -->
-            <div class="viewport-card">
-                <!-- Viewport Header Toolbar -->
-                <div class="viewport-header">
-                    <div class="viewport-title">
-                        <i class="fa-solid fa-eye"></i> VISUAL FORENSIC INSPECTOR
+            <!-- Verdict Card -->
+            <div class="verdict-card" id="verdict-card">
+                <div class="verdict-score-box">
+                    <span class="score-number" id="authenticity-score-val">--%</span>
+                    <span class="score-label">AUTHENTICITY</span>
+                </div>
+                <div class="verdict-details">
+                    <span class="verdict-category">AUTOMATED FORENSIC ASSESSMENT</span>
+                    <h3 class="verdict-title" id="verdict-title">ANALYZING...</h3>
+                    <div class="verdict-badges-list" id="verdict-badges-container">
+                        <!-- Populated by JS -->
                     </div>
-                    <div class="viewport-actions">
-                        <button id="btn-loupe" class="btn-tool" title="Toggle Magnifier Loupe"><i class="fa-solid fa-magnifying-glass-plus"></i> Loupe</button>
-                        <button id="btn-zoom-in" class="btn-tool" title="Zoom In"><i class="fa-solid fa-plus"></i></button>
-                        <button id="btn-zoom-out" class="btn-tool" title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
-                        <button id="btn-zoom-reset" class="btn-tool" title="Reset Zoom"><i class="fa-solid fa-rotate-left"></i></button>
-                        <button id="btn-fullscreen" class="btn-tool" title="Full Screen View"><i class="fa-solid fa-expand"></i></button>
+                </div>
+            </div>
+
+            <!-- Observations / Anomalies Checklist -->
+            <div class="findings-section">
+                <div class="section-title-sm">
+                    <span><i class="fa-solid fa-list-check"></i> Forensic Observations &amp; Findings</span>
+                    <span id="findings-count-badge" class="count-pill">0</span>
+                </div>
+                <div class="findings-list" id="findings-list-container">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Dossier Tabs Navigation -->
+            <div class="dossier-nav-tabs">
+                <button class="d-tab-btn active" data-tab="tab-hashes"><i class="fa-solid fa-hashtag"></i> Hashes</button>
+                <button class="d-tab-btn" data-tab="tab-hardware"><i class="fa-solid fa-camera"></i> EXIF &amp; Camera</button>
+                <button class="d-tab-btn" data-tab="tab-gps"><i class="fa-solid fa-location-dot"></i> GPS Map</button>
+                <button class="d-tab-btn" data-tab="tab-metrics"><i class="fa-solid fa-chart-simple"></i> Pixel Stats</button>
+                <button class="d-tab-btn" data-tab="tab-raw"><i class="fa-solid fa-table"></i> Raw Tags</button>
+            </div>
+
+            <!-- Tab Contents -->
+            <div class="dossier-tab-body">
+
+                <!-- Tab 1: Hashes & File Info -->
+                <div id="tab-hashes" class="d-tab-pane active">
+                    <h4 class="subhead">Cryptographic Integrity Hashes</h4>
+                    
+                    <div class="hash-item">
+                        <div class="hash-meta">
+                            <span class="h-name">MD5</span>
+                            <span class="h-desc">Standard 128-bit checksum</span>
+                        </div>
+                        <div class="hash-field">
+                            <code id="hash-md5">-</code>
+                            <button class="btn-copy-sm" onclick="copyText('hash-md5')" title="Copy to clipboard"><i class="fa-regular fa-copy"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="hash-item">
+                        <div class="hash-meta">
+                            <span class="h-name">SHA-1</span>
+                            <span class="h-desc">160-bit hash digest</span>
+                        </div>
+                        <div class="hash-field">
+                            <code id="hash-sha1">-</code>
+                            <button class="btn-copy-sm" onclick="copyText('hash-sha1')" title="Copy to clipboard"><i class="fa-regular fa-copy"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="hash-item highlight">
+                        <div class="hash-meta">
+                            <span class="h-name">SHA-256</span>
+                            <span class="h-desc">Standard digital evidence integrity hash</span>
+                        </div>
+                        <div class="hash-field">
+                            <code id="hash-sha256">-</code>
+                            <button class="btn-copy-sm" onclick="copyText('hash-sha256')" title="Copy to clipboard"><i class="fa-regular fa-copy"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="hash-item">
+                        <div class="hash-meta">
+                            <span class="h-name">SHA-512</span>
+                            <span class="h-desc">512-bit secure digest</span>
+                        </div>
+                        <div class="hash-field">
+                            <code id="hash-sha512">-</code>
+                            <button class="btn-copy-sm" onclick="copyText('hash-sha512')" title="Copy to clipboard"><i class="fa-regular fa-copy"></i></button>
+                        </div>
+                    </div>
+
+                    <h4 class="subhead" style="margin-top: 1rem;">File Properties</h4>
+                    <div class="meta-stats-grid">
+                        <div class="stat-box">
+                            <span class="sb-label">File Size:</span>
+                            <span class="sb-val" id="meta-filesize">-</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="sb-label">Bytes:</span>
+                            <span class="sb-val" id="meta-bytes">-</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="sb-label">Aspect Ratio:</span>
+                            <span class="sb-val" id="meta-aspect">-</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="sb-label">Analyzed On:</span>
+                            <span class="sb-val" id="meta-timestamp">-</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Mode Selection Tabs -->
-                <div class="mode-tabs">
-                    <button class="mode-btn active" data-mode="original"><i class="fa-solid fa-image"></i> Original</button>
-                    <button class="mode-btn" data-mode="split"><i class="fa-solid fa-sliders"></i> Split Comparison</button>
-                    <button class="mode-btn" data-mode="ela"><i class="fa-solid fa-chart-line"></i> ELA Heatmap</button>
-                    <button class="mode-btn" data-mode="noise"><i class="fa-solid fa-wave-square"></i> Noise Pattern</button>
-                    <button class="mode-btn" data-mode="gradient"><i class="fa-solid fa-compass-drafting"></i> Luminance</button>
-                    <button class="mode-btn" data-mode="chroma"><i class="fa-solid fa-palette"></i> Chrominance</button>
-                    <button class="mode-btn" data-mode="clones"><i class="fa-solid fa-clone"></i> Copy-Move</button>
+                <!-- Tab 2: EXIF & Camera Hardware -->
+                <div id="tab-hardware" class="d-tab-pane">
+                    <h4 class="subhead">Camera Hardware Fingerprint</h4>
+                    <table class="simple-data-table">
+                        <tbody>
+                            <tr>
+                                <td>Camera Maker</td>
+                                <td id="exif-make" class="td-strong">Not specified</td>
+                            </tr>
+                            <tr>
+                                <td>Camera Model</td>
+                                <td id="exif-model" class="td-strong">Not specified</td>
+                            </tr>
+                            <tr>
+                                <td>Lens Model</td>
+                                <td id="exif-lens">Not specified</td>
+                            </tr>
+                            <tr>
+                                <td>Software Tag</td>
+                                <td id="exif-software" class="td-strong">None detected</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4 class="subhead" style="margin-top: 1rem;">Exposure Parameters</h4>
+                    <table class="simple-data-table">
+                        <tbody>
+                            <tr>
+                                <td>Shutter Speed</td>
+                                <td id="exif-shutter">-</td>
+                            </tr>
+                            <tr>
+                                <td>Aperture (F-Stop)</td>
+                                <td id="exif-aperture">-</td>
+                            </tr>
+                            <tr>
+                                <td>ISO Sensitivity</td>
+                                <td id="exif-iso">-</td>
+                            </tr>
+                            <tr>
+                                <td>Focal Length</td>
+                                <td id="exif-focal">-</td>
+                            </tr>
+                            <tr>
+                                <td>Flash</td>
+                                <td id="exif-flash">-</td>
+                            </tr>
+                            <tr>
+                                <td>Capture Date / Time</td>
+                                <td id="exif-datetime">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
-                <!-- Dynamic ELA Parameter Tuning Bar (visible when ELA or Split is active) -->
-                <div id="ela-controls-bar" class="ela-controls-bar">
-                    <div class="slider-control">
-                        <label for="ela-quality">JPEG Quality: <span id="ela-quality-val" class="ctrl-val">90%</span></label>
-                        <input type="range" id="ela-quality" min="30" max="98" value="90" step="1">
+                <!-- Tab 3: GPS Geolocation Map -->
+                <div id="tab-gps" class="d-tab-pane">
+                    <div id="gps-active-section">
+                        <div class="gps-info-bar">
+                            <div><strong>Latitude:</strong> <span id="gps-lat-val">--</span></div>
+                            <div><strong>Longitude:</strong> <span id="gps-lon-val">--</span></div>
+                            <div><strong>Altitude:</strong> <span id="gps-alt-val">--</span></div>
+                            <a id="gps-map-link" href="#" target="_blank" class="btn-link-external">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Google Maps
+                            </a>
+                        </div>
+                        <div id="leaflet-map" class="map-container"></div>
                     </div>
-                    <div class="slider-control">
-                        <label for="ela-scale">Scale Amplifier: <span id="ela-scale-val" class="ctrl-val">15x</span></label>
-                        <input type="range" id="ela-scale" min="2" max="40" value="15" step="1">
+
+                    <div id="gps-inactive-section" class="empty-state-small hidden">
+                        <i class="fa-solid fa-location-dot text-muted"></i>
+                        <p>No GPS coordinates found in image EXIF data. This is normal for studio cameras or images compressed by social messaging apps.</p>
                     </div>
-                    <button id="btn-apply-ela" class="btn-ela-apply">
-                        <i class="fa-solid fa-arrows-rotate"></i> Recalculate ELA
+                </div>
+
+                <!-- Tab 4: Pixel & ELA Statistical Metrics -->
+                <div id="tab-metrics" class="d-tab-pane">
+                    <h4 class="subhead">Error Level Analysis (ELA) Metrics</h4>
+                    <div class="meta-stats-grid">
+                        <div class="stat-box">
+                            <span class="sb-label">Mean Error:</span>
+                            <span class="sb-val" id="ela-mean-val">0.00</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="sb-label">Peak Error:</span>
+                            <span class="sb-val" id="ela-max-val">0.00</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="sb-label">Error Variance:</span>
+                            <span class="sb-val" id="ela-variance-val">0.00</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="sb-label">Quality Baseline:</span>
+                            <span class="sb-val" id="ela-quality-tested">90%</span>
+                        </div>
+                    </div>
+
+                    <h4 class="subhead" style="margin-top: 1rem;">Copy-Move Duplication Matches</h4>
+                    <div class="stat-box wide">
+                        <span class="sb-label">Correlated Feature Keypoint Pairs:</span>
+                        <span class="sb-val" id="clone-matches-val">0 matches</span>
+                    </div>
+
+                    <div class="note-box">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>ELA resaves the image at 90% quality and calculates the absolute difference. High variance (> 100) indicates mismatched compression histories characteristic of splicing.</span>
+                    </div>
+                </div>
+
+                <!-- Tab 5: Raw EXIF Tags Table -->
+                <div id="tab-raw" class="d-tab-pane">
+                    <div class="table-search-wrap">
+                        <input type="text" id="raw-tag-search" class="form-control-sm" placeholder="Filter tags by name (e.g. Model, DateTime, Artist)...">
+                    </div>
+                    <div class="table-scroll-wrap">
+                        <table class="raw-data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tag Name</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="raw-tags-tbody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Export & Action Buttons Footer -->
+            <div class="dossier-actions-bar">
+                <div class="export-buttons-group">
+                    <a id="btn-export-pdf" href="#" class="btn-report btn-pdf">
+                        <i class="fa-solid fa-file-pdf"></i> Download PDF
+                    </a>
+                    <a id="btn-export-txt" href="#" class="btn-report btn-txt">
+                        <i class="fa-solid fa-file-lines"></i> TXT
+                    </a>
+                    <a id="btn-export-json" href="#" class="btn-report btn-json">
+                        <i class="fa-solid fa-file-code"></i> JSON
+                    </a>
+                    <button class="btn-report btn-print" onclick="window.print()">
+                        <i class="fa-solid fa-print"></i> Print
                     </button>
                 </div>
-
-                <!-- Image Viewport Canvas / Stage -->
-                <div class="viewport-stage" id="viewport-stage">
-
-                    <!-- Standard Single Image View -->
-                    <div id="single-view-wrap" class="view-layer">
-                        <img id="main-display-img" src="" alt="Forensic View" class="forensic-main-img">
-                    </div>
-
-                    <!-- Split Comparison View (Original vs ELA) -->
-                    <div id="split-view-wrap" class="view-layer hidden">
-                        <div class="split-slider-container" id="split-container">
-                            <div class="split-image-before">
-                                <img id="split-img-before" src="" alt="Original Image">
-                                <span class="split-tag tag-left">ORIGINAL</span>
-                            </div>
-                            <div class="split-image-after" id="split-after-box">
-                                <img id="split-img-after" src="" alt="ELA Difference">
-                                <span class="split-tag tag-right">ELA HEATMAP</span>
-                            </div>
-                            <div class="split-divider" id="split-divider">
-                                <div class="split-handle">
-                                    <i class="fa-solid fa-arrows-left-right"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Magnifier Loupe Glass -->
-                    <div id="magnifier-glass" class="magnifier-glass hidden"></div>
-
-                    <!-- Viewport Floating Badges -->
-                    <div class="viewport-overlay-chips">
-                        <span id="chip-dimensions" class="v-chip"><i class="fa-solid fa-vector-square"></i> -</span>
-                        <span id="chip-format" class="v-chip"><i class="fa-solid fa-file-code"></i> -</span>
-                        <span id="chip-colormode" class="v-chip"><i class="fa-solid fa-palette"></i> -</span>
-                    </div>
-                </div>
-
-                <!-- View Mode Guidance Footer -->
-                <div class="viewport-guide" id="viewport-guide">
-                    <i class="fa-solid fa-circle-info"></i>
-                    <span id="guide-text">Error Level Analysis reveals discrepancies in JPEG compression error rates across spliced or edited segments.</span>
-                </div>
+                <button id="btn-new-analysis" class="btn-reset-link">
+                    <i class="fa-solid fa-arrow-rotate-left"></i> New Image
+                </button>
             </div>
 
-            <!-- Right Column: Forensic Findings & Diagnostic Dossier -->
-            <div class="dossier-card">
-
-                <!-- Overall Verdict Banner -->
-                <div class="verdict-banner-card" id="verdict-card">
-                    <div class="verdict-gauge-wrapper">
-                        <div class="gauge-ring" id="verdict-gauge">
-                            <span class="gauge-value" id="authenticity-score-val">--%</span>
-                            <span class="gauge-label">CONFIDENCE</span>
-                        </div>
-                    </div>
-                    <div class="verdict-info">
-                        <div class="verdict-eyebrow">AUTOMATED FORENSIC VERDICT</div>
-                        <h2 class="verdict-status" id="verdict-title">ANALYZING...</h2>
-                        <div class="verdict-badges" id="verdict-badges-container">
-                            <!-- Badges dynamically added -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Forensic Anomaly Checklist -->
-                <div class="findings-box">
-                    <div class="findings-header">
-                        <span><i class="fa-solid fa-triangle-exclamation"></i> FORENSIC OBSERVATIONS & ANOMALIES</span>
-                        <span id="findings-count-badge" class="count-badge">0</span>
-                    </div>
-                    <div class="findings-list" id="findings-list-container">
-                        <!-- Populated via JS -->
-                    </div>
-                </div>
-
-                <!-- Investigation Tabs Navigation -->
-                <div class="dossier-tabs-nav">
-                    <button class="d-tab-btn active" data-tab="tab-hashes"><i class="fa-solid fa-key"></i> Hashes</button>
-                    <button class="d-tab-btn" data-tab="tab-hardware"><i class="fa-solid fa-camera"></i> EXIF & Camera</button>
-                    <button class="d-tab-btn" data-tab="tab-gps"><i class="fa-solid fa-location-dot"></i> GPS Map</button>
-                    <button class="d-tab-btn" data-tab="tab-metrics"><i class="fa-solid fa-chart-pie"></i> Pixel Stats</button>
-                    <button class="d-tab-btn" data-tab="tab-raw"><i class="fa-solid fa-table-list"></i> Raw Tags</button>
-                </div>
-
-                <!-- Tab Contents -->
-                <div class="dossier-tab-contents">
-
-                    <!-- Tab 1: Hashes & File Info -->
-                    <div id="tab-hashes" class="d-tab-pane active">
-                        <div class="info-group">
-                            <h4>FILE INTEGRITY & SYSTEM CHECKSUMS</h4>
-                            
-                            <div class="hash-row">
-                                <div class="hash-meta">
-                                    <span class="hash-name">MD5</span>
-                                    <span class="hash-desc">Legacy Message-Digest Checksum</span>
-                                </div>
-                                <div class="hash-field">
-                                    <code id="hash-md5">-</code>
-                                    <button class="btn-copy" onclick="copyText('hash-md5')"><i class="fa-regular fa-copy"></i></button>
-                                </div>
-                            </div>
-
-                            <div class="hash-row">
-                                <div class="hash-meta">
-                                    <span class="hash-name">SHA-1</span>
-                                    <span class="hash-desc">Secure Hash Algorithm 1</span>
-                                </div>
-                                <div class="hash-field">
-                                    <code id="hash-sha1">-</code>
-                                    <button class="btn-copy" onclick="copyText('hash-sha1')"><i class="fa-regular fa-copy"></i></button>
-                                </div>
-                            </div>
-
-                            <div class="hash-row highlight">
-                                <div class="hash-meta">
-                                    <span class="hash-name">SHA-256</span>
-                                    <span class="hash-desc">Standard Digital Forensic Evidence Hash</span>
-                                </div>
-                                <div class="hash-field">
-                                    <code id="hash-sha256">-</code>
-                                    <button class="btn-copy" onclick="copyText('hash-sha256')"><i class="fa-regular fa-copy"></i></button>
-                                </div>
-                            </div>
-
-                            <div class="hash-row">
-                                <div class="hash-meta">
-                                    <span class="hash-name">SHA-512</span>
-                                    <span class="hash-desc">High-Security 512-Bit Digest</span>
-                                </div>
-                                <div class="hash-field">
-                                    <code id="hash-sha512">-</code>
-                                    <button class="btn-copy" onclick="copyText('hash-sha512')"><i class="fa-regular fa-copy"></i></button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="info-group">
-                            <h4>METRIC ATTRIBUTES</h4>
-                            <div class="metric-grid">
-                                <div class="metric-box">
-                                    <span class="m-label">File Size</span>
-                                    <span class="m-val" id="meta-filesize">-</span>
-                                </div>
-                                <div class="metric-box">
-                                    <span class="m-label">Exact Bytes</span>
-                                    <span class="m-val" id="meta-bytes">-</span>
-                                </div>
-                                <div class="metric-box">
-                                    <span class="m-label">Aspect Ratio</span>
-                                    <span class="m-val" id="meta-aspect">-</span>
-                                </div>
-                                <div class="metric-box">
-                                    <span class="m-label">Timestamp</span>
-                                    <span class="m-val" id="meta-timestamp">-</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tab 2: EXIF & Camera Hardware -->
-                    <div id="tab-hardware" class="d-tab-pane">
-                        <div class="info-group">
-                            <h4>CAMERA & OPTICAL HARDWARE</h4>
-                            <table class="forensic-table">
-                                <tbody>
-                                    <tr>
-                                        <td><i class="fa-solid fa-camera"></i> Camera Maker</td>
-                                        <td id="exif-make" class="td-val">Not available</td>
-                                    </tr>
-                                    <tr>
-                                        <td><i class="fa-solid fa-cube"></i> Camera Model</td>
-                                        <td id="exif-model" class="td-val">Not available</td>
-                                    </tr>
-                                    <tr>
-                                        <td><i class="fa-solid fa-circle-notch"></i> Lens Model</td>
-                                        <td id="exif-lens" class="td-val">Not available</td>
-                                    </tr>
-                                    <tr>
-                                        <td><i class="fa-solid fa-laptop-code"></i> Software Signature</td>
-                                        <td id="exif-software" class="td-val highlight-danger">None detected</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="info-group">
-                            <h4>CAPTURE EXPOSURE SETTINGS</h4>
-                            <table class="forensic-table">
-                                <tbody>
-                                    <tr>
-                                        <td><i class="fa-solid fa-stopwatch"></i> Shutter Speed</td>
-                                        <td id="exif-shutter" class="td-val">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td><i class="fa-solid fa-eye-dropper"></i> Aperture (F-Stop)</td>
-                                        <td id="exif-aperture" class="td-val">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td><i class="fa-solid fa-gauge-high"></i> ISO Sensitivity</td>
-                                        <td id="exif-iso" class="td-val">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td><i class="fa-solid fa-ruler-horizontal"></i> Focal Length</td>
-                                        <td id="exif-focal" class="td-val">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td><i class="fa-solid fa-bolt"></i> Flash</td>
-                                        <td id="exif-flash" class="td-val">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td><i class="fa-regular fa-clock"></i> Capture Date / Time</td>
-                                        <td id="exif-datetime" class="td-val">-</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Tab 3: GPS Geolocation Map -->
-                    <div id="tab-gps" class="d-tab-pane">
-                        <div id="gps-active-section">
-                            <div class="gps-coords-banner">
-                                <div class="coord-item">
-                                    <span class="coord-label">LATITUDE</span>
-                                    <span class="coord-value" id="gps-lat-val">--</span>
-                                </div>
-                                <div class="coord-item">
-                                    <span class="coord-label">LONGITUDE</span>
-                                    <span class="coord-value" id="gps-lon-val">--</span>
-                                </div>
-                                <div class="coord-item">
-                                    <span class="coord-label">ALTITUDE</span>
-                                    <span class="coord-value" id="gps-alt-val">--</span>
-                                </div>
-                                <a id="gps-map-link" href="#" target="_blank" class="btn-map-ext">
-                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Map
-                                </a>
-                            </div>
-
-                            <div id="leaflet-map" class="leaflet-map-frame"></div>
-                        </div>
-
-                        <div id="gps-inactive-section" class="empty-state-box hidden">
-                            <i class="fa-solid fa-location-crosshairs empty-icon"></i>
-                            <h4>No Embedded GPS Geodata Found</h4>
-                            <p>This image does not contain GPS tags in its EXIF header. This is normal for studio cameras, or photos that have been stripped by messaging apps like WhatsApp or Instagram.</p>
-                        </div>
-                    </div>
-
-                    <!-- Tab 4: Pixel & ELA Statistical Metrics -->
-                    <div id="tab-metrics" class="d-tab-pane">
-                        <div class="info-group">
-                            <h4>ERROR LEVEL ANALYSIS (ELA) STATISTICAL METRICS</h4>
-                            <div class="metric-grid">
-                                <div class="metric-box">
-                                    <span class="m-label">Mean Error</span>
-                                    <span class="m-val" id="ela-mean-val">0.00</span>
-                                </div>
-                                <div class="metric-box">
-                                    <span class="m-label">Peak Error</span>
-                                    <span class="m-val" id="ela-max-val">0.00</span>
-                                </div>
-                                <div class="metric-box">
-                                    <span class="m-label">Error Variance</span>
-                                    <span class="m-val" id="ela-variance-val">0.00</span>
-                                </div>
-                                <div class="metric-box">
-                                    <span class="m-label">Quality Baseline</span>
-                                    <span class="m-val" id="ela-quality-tested">90%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="info-group">
-                            <h4>COPY-MOVE / DUPLICATION MATCHES</h4>
-                            <div class="metric-grid">
-                                <div class="metric-box wide">
-                                    <span class="m-label">Suspicious Correlated Keypoint Pairs</span>
-                                    <span class="m-val" id="clone-matches-val">0 matches</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="forensic-explainer">
-                            <h5><i class="fa-solid fa-graduation-cap"></i> Forensic Methodology Note</h5>
-                            <p>Digital JPEG images exhibit a predictable compression gradient across their 8x8 DCT blocks. When objects from another source are composited or cloned, they introduce discordant compression history, appearing as higher brightness anomalies under Error Level Analysis.</p>
-                        </div>
-                    </div>
-
-                    <!-- Tab 5: Raw EXIF Tags Table -->
-                    <div id="tab-raw" class="d-tab-pane">
-                        <div class="table-search-bar">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <input type="text" id="raw-tag-search" placeholder="Filter tags by name (e.g. DateTime, Artist, Exposure)...">
-                        </div>
-                        <div class="raw-tags-scroll">
-                            <table class="raw-tags-table" id="raw-tags-table">
-                                <thead>
-                                    <tr>
-                                        <th>Tag Identifier</th>
-                                        <th>Decoded Value</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="raw-tags-tbody">
-                                    <!-- Populated via JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Export & Action Buttons Footer -->
-                <div class="dossier-footer">
-                    <div class="export-actions">
-                        <a id="btn-export-pdf" href="#" class="btn-action btn-pdf">
-                            <i class="fa-solid fa-file-pdf"></i> Download PDF Report
-                        </a>
-                        <a id="btn-export-txt" href="#" class="btn-action btn-txt">
-                            <i class="fa-solid fa-file-lines"></i> TXT Report
-                        </a>
-                        <a id="btn-export-json" href="#" class="btn-action btn-json">
-                            <i class="fa-solid fa-file-code"></i> JSON Data
-                        </a>
-                        <button id="btn-print" class="btn-action btn-print" onclick="window.print()">
-                            <i class="fa-solid fa-print"></i> Print
-                        </button>
-                    </div>
-                    <button id="btn-new-analysis" class="btn-reset">
-                        <i class="fa-solid fa-arrow-rotate-right"></i> New Investigation
-                    </button>
-                </div>
-
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="app-footer">
-        <div class="footer-container">
-            <div class="footer-left">
-                <span>VERITAS Digital Image Forensics Lab</span>
-                <span class="footer-divider">•</span>
-                <span>Computer Security & Digital Forensics (CSDF)</span>
-            </div>
-            <div class="footer-right">
-                <span>Python • Pillow • OpenCV • ReportLab • Flask</span>
-            </div>
         </div>
-    </footer>
 
-    <!-- Toast Notification Container -->
-    <div id="toast-container" class="toast-container"></div>
+    </div>
 
-    <!-- Scripts -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-</body>
-</html>
+</div>
+
+<!-- Toast Notification Container -->
+<div id="toast-container" class="toast-container"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}

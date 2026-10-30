@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Investigation History - Digital Image Forensics Tool{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Page Header & Stats Summary -->
+    <div class="content-header-card">
+        <div class="header-text-group">
+            <h2><i class="fa-solid fa-clock-rotate-left"></i> Forensic Investigation History</h2>
+            <p>Historical audit logs and forensic inspection records saved in local SQLite database (<code>forensics.db</code>).</p>
+        </div>
+
+        <div class="history-stats-pills">
+            <div class="stat-pill">
+                <span class="stat-pill-label">Total Analyzed:</span>
+                <span class="stat-pill-val">{{ stats.total_scans }}</span>
+            </div>
+            <div class="stat-pill green">
+                <span class="stat-pill-label">Authentic:</span>
+                <span class="stat-pill-val">{{ stats.authentic_count }}</span>
+            </div>
+            <div class="stat-pill red">
+                <span class="stat-pill-label">Manipulated:</span>
+                <span class="stat-pill-val">{{ stats.tampered_count }}</span>
+            </div>
+            <div class="stat-pill yellow">
+                <span class="stat-pill-label">Suspicious:</span>
+                <span class="stat-pill-val">{{ stats.suspicious_count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="table-toolbar">
+        <div class="search-input-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="history-search" placeholder="Search by file name, SHA-256 hash, or verdict...">
+        </div>
+        <div class="toolbar-actions">
+            <a href="{{ url_for('index') }}" class="btn-primary-sm">
+                <i class="fa-solid fa-plus"></i> New Analysis
+            </a>
+        </div>
+    </div>
+
+    <!-- History Table Card -->
+    <div class="content-card">
+        {% if records and records|length > 0 %}
+            <div class="table-responsive">
+                <table class="data-table" id="history-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th>Timestamp</th>
+                            <th>File Name &amp; Dimensions</th>
+                            <th>Cryptographic Checksums</th>
+                            <th>Hardware &amp; Software</th>
+                            <th>Forensic Verdict</th>
+                            <th>Score</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in records %}
+                            <tr id="row-{{ item.id }}">
+                                <td class="text-muted">{{ item.id }}</td>
+                                <td>
+                                    <div class="date-cell">
+                                        <i class="fa-regular fa-calendar"></i>
+                                        <span>{{ item.created_at }}</span>
+                                    </div>
+                                    {% if item.username %}
+                                        <span class="user-subtext"><i class="fa-solid fa-user"></i> {{ item.username }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ item.filename }}</strong>
+                                    <div class="meta-subtext">
+                                        <span>{{ item.image_format }}</span> • <span>{{ item.filesize }}</span> • <span>{{ item.resolution }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="hash-cell">
+                                        <div><span class="hash-tag">MD5:</span> <code title="{{ item.md5 }}">{{ item.md5[:12] }}...</code></div>
+                                        <div><span class="hash-tag">SHA-256:</span> <code title="{{ item.sha256 }}">{{ item.sha256[:16] }}...</code></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="meta-subtext">
+                                        <div><i class="fa-solid fa-camera"></i> {{ item.camera_info or 'Not specified' }}</div>
+                                        {% if item.software_detected %}
+                                            <div class="text-danger"><i class="fa-solid fa-code"></i> {{ item.software_detected }}</div>
+                                        {% endif %}
+                                        {% if item.gps_info %}
+                                            <div class="text-info"><i class="fa-solid fa-location-dot"></i> {{ item.gps_info }}</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if 'AUTHENTIC' in item.verdict %}
+                                        <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Likely Authentic</span>
+                                    {% elif 'MANIPULATION' in item.verdict or 'HIGH' in item.verdict %}
+                                        <span class="badge badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> Manipulated</span>
+                                    {% else %}
+                                        <span class="badge badge-warning"><i class="fa-solid fa-circle-question"></i> Suspicious / Stripped</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="score-pill {% if item.authenticity_score >= 80 %}score-high{% elif item.authenticity_score >= 50 %}score-mid{% else %}score-low{% endif %}">
+                                        {{ item.authenticity_score }}%
+                                    </span>
+                                </td>
+                                <td style="text-align: right;">
+                                    <button class="btn-icon-danger" title="Delete Record" onclick="deleteRecord({{ item.id }})">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-folder-open empty-state-icon"></i>
+                <h3>No Forensic Records Found</h3>
+                <p>No images have been analyzed yet. Upload and analyze an image to save your first forensic audit record into the SQLite database.</p>
+                <a href="{{ url_for('index') }}" class="btn-primary-sm">
+                    <i class="fa-solid fa-upload"></i> Go to Analysis Dashboard
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Real-time table search filter
+    const searchInput = document.getElementById("history-search");
+    if (searchInput) {
+        searchInput.addEventListener("input", function(e) {
+            const query = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll("#history-table tbody tr");
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? "" : "none";
+            });
+        });
+    }
+
+    // Delete record via API
+    function deleteRecord(id) {
+        if (!confirm("Are you sure you want to delete forensic record #" + id + " from the database?")) {
+            return;
+        }
+
+        fetch("/api/history/" + id, {
+            method: "DELETE"
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const row = document.getElementById("row-" + id);
+                if (row) {
+                    row.remove();
+                }
+            } else {
+                alert("Error: " + (data.error || "Failed to delete record."));
+            }
+        })
+        .catch(err => {
+            alert("Network error: " + err.message);
+        });
+    }
+</script>
+{% endblock %}
